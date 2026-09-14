@@ -52,7 +52,10 @@ export const App = () => {
       <div className="app__body">
         <aside className="pane pane--left">
           <h2 className="pane__title">Palette</h2>
-          <p className="pane__placeholder">Parts search arrives at M2.</p>
+          <p className="pane__placeholder">
+            Parts search works in the engine (M2) — run <code>pnpm demo</code>. This palette is
+            wired up with the editor at M4.
+          </p>
         </aside>
 
         <main className="pane pane--center">
