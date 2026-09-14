@@ -1,7 +1,7 @@
 # Development overlay:  docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 #
-# Publishes every service port on the host for direct debugging, mounts the source tree
-# for hot reload, and relaxes Meilisearch into development mode.
+# Publishes every running service's port on the host for direct debugging and mounts the
+# source tree for hot reload. Profile services only appear when their profile is enabled.
 
 name: syntrix
 
@@ -39,71 +39,39 @@ services:
       - ./apps/api:/app/apps/api
       - ./packages:/app/packages
       - ./config:/app/config:ro
+      - ./data/artifacts:/data/artifacts
       - /app/node_modules
       - /app/apps/api/node_modules
 
-  mcp:
-    build:
-      target: dev
-    command: ["pnpm", "--filter", "@syntrix/mcp", "dev"]
-    environment:
-      NODE_ENV: development
-      LOG_LEVEL: debug
+  mongo:
     ports:
-      - "${MCP_PORT:-3018}:3018"
-    volumes:
-      - ./apps/mcp:/app/apps/mcp
-      - ./packages:/app/packages
-      - /app/node_modules
-      - /app/apps/mcp/node_modules
+      - "27017:27017"
 
-  worker:
-    build:
-      target: dev
-    command: ["pnpm", "--filter", "@syntrix/worker", "dev"]
-    environment:
-      NODE_ENV: development
-      LOG_LEVEL: debug
-    volumes:
-      - ./apps/worker:/app/apps/worker
-      - ./packages:/app/packages
-      - /app/node_modules
-      - /app/apps/worker/node_modules
-
+  # --- profile services -------------------------------------------------------
   kicad:
     ports:
       - "${KICAD_PORT:-3019}:3019"
     volumes:
       - ./services/kicad/app:/app:ro
 
-  sim:
-    ports:
-      - "${SIM_PORT:-3020}:3020"
-    volumes:
-      - ./services/sim/app:/app:ro
-
-  pytools:
-    ports:
-      - "${PYTOOLS_PORT:-3022}:3022"
-    volumes:
-      - ./services/pytools/app:/app:ro
-
-  freerouting:
-    ports:
-      - "${FREEROUTING_PORT:-3021}:3021"
-
-  mongo:
-    ports:
-      - "27017:27017"
-
   redis:
     ports:
       - "6379:6379"
 
-  minio:
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+  # The `dev:worker` script lands with the bulk ingestion jobs at M7.
+  worker:
+    build:
+      target: dev
+    command: ["pnpm", "--filter", "@syntrix/api", "dev:worker"]
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+    volumes:
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      - ./data/artifacts:/data/artifacts
+      - /app/node_modules
+      - /app/apps/api/node_modules
 
   meilisearch:
     environment:

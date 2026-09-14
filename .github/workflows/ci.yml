@@ -50,29 +50,31 @@ jobs:
         # build rather than merely reporting a number.
         run: pnpm --filter @syntrix/core test:run -- --coverage
 
-  services:
-    name: Build service images
+  images:
+    name: Build app images
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: docker/setup-buildx-action@v3
 
-      # The KiCad image is several GB and would dominate CI time, so only the small
-      # Python services are built here. The KiCad and Freerouting images are exercised
-      # by the M0 manual acceptance script instead.
-      - name: Build sim image
+      # The optional `kicad` profile image is several GB and would dominate CI time, so
+      # it is exercised by the manual acceptance script instead. The two required app
+      # images are built here.
+      - name: Build api image
         uses: docker/build-push-action@v6
         with:
-          context: ./services/sim
+          context: .
+          file: ./apps/api/Dockerfile
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build pytools image
+      - name: Build web image
         uses: docker/build-push-action@v6
         with:
-          context: ./services/pytools
+          context: .
+          file: ./apps/web/Dockerfile
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max

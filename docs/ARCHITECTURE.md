@@ -37,6 +37,7 @@ type Design = {
   version: number // optimistic concurrency
   circuit: AnyCircuitElement[] // spec-conformant circuit-json, flat
   meta: Record<string, MetaEntry> // sidecar, keyed by element id
+  manualEdits: ManualEdits // placements the user dragged, keyed by component
 }
 ```
 
@@ -46,9 +47,14 @@ union on `type` (ADR-0003). That strictness is the feature: it is impossible to 
 non-spec field into the document, so anything we export is by construction something the
 whole tscircuit toolchain can read.
 
-Everything we need that the spec does not model goes in `meta`: layout overrides,
-placement constraints, part provenance, agent notes, footprint verification status. The
-sidecar travels with the design and is stripped on export.
+Everything we need that the spec does not model goes in `meta`: placement constraints,
+part provenance, agent notes, footprint verification status. The sidecar travels with the
+design and is stripped on export.
+
+`manualEdits` is separate from `meta` because it is not ours: it mirrors tscircuit's own
+manual-edits concept (schematic and PCB placements keyed by `source_component_id`), so it
+round-trips through the tscircuit toolchain rather than being a private convention. It
+always wins over automatic layout.
 
 Because a flat array is the wrong shape for most questions ("what is connected to this
 pin?"), core maintains an **indexed view** beside it — maps from id to element, component
@@ -59,7 +65,7 @@ go through the index; the array stays canonical.
 
 A Zod discriminated union: `add_component`, `remove_component`, `set_prop`, `rename`,
 `connect`, `disconnect`, `create_net`, `rename_net`, `add_net_label`, `add_power_symbol`,
-`place_hint`, `move_component`, `set_layout_override`, `batch`, `merge_circuit_json`.
+`place_hint`, `move_component`, `batch`, `merge_circuit_json`.
 
 `apply` is **pure and immutable**. It never throws for domain failure; it returns
 `Result<Design, ValidationError[]>`, and each error carries `code`, `message`, `hint` and
@@ -93,14 +99,14 @@ traceable to the operation, and the agent turn, that produced it.
 | `@syntrix/core`      | document store, indexed views, Operations, reducer, undo/redo, ERC, `summarizeForLLM`, TSX merge |
 | `@syntrix/parts`     | `PartDefinition`, T0 generic catalog, `PartsSource` registry, footprint resolution, pin mapping  |
 | `@syntrix/layout`    | `LayoutStrategy`, `ElkLayoutStrategy`, schematic conventions, override merge                     |
-| `@syntrix/export`    | exporter registry: spice, ltspice-asc, kicad, svg, bom, pnp, gerber, dsn                         |
-| `@syntrix/sim`       | `Simulator` interface, ngspice WASM and remote, netlist builder, result summarizer               |
-| `@syntrix/agent`     | tool definitions, role-to-model routing, `AgentLoop`, prompts                                    |
-| `@syntrix/pcb`       | board model, placement strategy, routing via Freerouting (M10)                                   |
+| `@syntrix/export`    | exporter registry wrapping the tscircuit exporters, plus ltspice-asc and eject-to-tsx            |
+| `@syntrix/sim`       | `Simulator` interface, WASM ngspice in Worker and Node, netlist builder, result summarizer       |
+| `@syntrix/agent`     | tool definitions, role-to-model routing, `AgentLoop`, prompts (incl. the tscircuit skill)        |
 | `@syntrix/ui-canvas` | framework-agnostic SVG scene graph and hit testing                                               |
 
-Apps: `web` (Vite/React), `api` (Express), `mcp` (MCP server), `worker` (BullMQ).
-Services: `kicad`, `sim`, `pytools` (Dockerised FastAPI wrappers around native tools).
+Apps: `web` (Vite/React) and `api` (Express + MCP + the in-process job queue) — one Node
+runtime for all app code. The only service is the optional `kicad` profile, a FastAPI
+wrapper around `kicad-cli`.
 
 Dependency direction is strictly downward: `shared` then `core`, then `parts` / `layout` /
 `export` / `sim`, then `agent`, then apps. Core depends on no sibling package except
@@ -147,14 +153,20 @@ passives inline), edges route orthogonally and become `schematic_trace` elements
 junctions. Power nets get net labels instead of long wires, because a schematic with a
 wire from every IC to a distant VCC rail is technically correct and unreadable.
 
-Manual overrides always win: a user drag writes `set_layout_override` into `meta`, and
-relayout preserves it. Relayout is incremental — only elements without positions move.
+Manual edits always win: a user drag writes `move_component`, which records the placement
+in `design.manualEdits`, and relayout preserves it. Relayout is incremental — only
+elements without positions move.
+
+PCB routing is not ours. tscircuit's autorouter, reached through `@tscircuit/core`,
+produces `pcb_trace` elements; we contribute board outline, placement and constraints.
 
 ## 8. Parts
 
 Three tiers. **T0** is a generic catalog in code (R, C, L, diodes, transistors, common
 ICs, connectors, power symbols) — always available, no network, no database. **T1** is a
-curated set in Mongo, indexed in Meilisearch with key parameters as facets. **T2** is
+curated set in Mongo with a text index over mpn, description, category and package, plus
+structured electrical fields for filtering — behind a `PartsIndex` interface, so the
+optional `search` profile swaps in Meilisearch without touching a caller. **T2** is
 federated: adapters for LCSC/EasyEDA, KiCad libraries, DigiKey, Nexar and Mouser, with
 results cached and promotable into T1.
 
@@ -166,13 +178,13 @@ most expensive failure mode in this domain.
 ## 9. Simulation
 
 `circuit-json-to-spice` builds the netlist; `@syntrix/sim` injects SPICE models from the
-parts layer and appends analysis cards. ngspice runs as WASM in a Web Worker for fast
-interactive analyses and natively in the `sim` container for long jobs — same interface,
-chosen by capability and job size.
+parts layer and appends analysis cards. ngspice runs as WASM — in a Web Worker in the
+browser and in-process in Node on the server — the same engine tscircuit itself uses.
+There is no native ngspice service.
 
 **The LLM never sees raw waveform vectors.** `summarizeSimResult` reduces a run to node
-voltages, min/max/RMS, -3 dB point, rise time and overshoot; full vectors go to MinIO and
-are referenced by id. A transient analysis is megabytes of numbers, and a context window
+voltages, min/max/RMS, -3 dB point, rise time and overshoot; full vectors are written to
+`./data/artifacts/sim/<id>.json` and referenced by id. A transient analysis is megabytes of numbers, and a context window
 is not a data store.
 
 ## 10. Agent
@@ -189,7 +201,11 @@ SSE so the user watches the reasoning rather than a spinner.
 
 ## 11. Deployment
 
-Docker Compose behind Caddy on port 3015, which terminates TLS and routes `/` to web,
-`/api` to api, `/mcp` to mcp. Heavy native tools (KiCad CLI, ngspice, Freerouting, Python
-EDA tooling) live in their own containers with FastAPI wrappers and OpenAPI specs, so the
-Node services never shell out to a binary they cannot version.
+Docker Compose behind Caddy on port 3015, which terminates TLS and routes `/` to web and
+both `/api` and `/mcp` to the api process.
+
+**Four required services**: `proxy`, `web`, `api`, `mongo`. Everything else is an opt-in
+profile — `kicad` (a FastAPI wrapper around `kicad-cli`, so the Node process never shells
+out to a binary it cannot version), `indexing` (Redis plus a BullMQ worker running the
+same job handlers the api runs in-process), and `search` (Meilisearch). Artifacts are a
+local volume. A stack with no profile running is fully functional and reports `ok`.

@@ -1,31 +1,41 @@
 #!/usr/bin/env bash
-# Probe every SYNTRIX service. This is M0's acceptance script — see docs/ACCEPTANCE.md.
+# Probe every SYNTRIX service. This is the M0' acceptance script — see docs/ACCEPTANCE.md.
 #
-# Usage:  bash scripts/health-check.sh [--host localhost]
-# Exits non-zero if any required service is unreachable, so CI can gate on it.
+# Usage:  bash scripts/health-check.sh [--host localhost] [--profiles "kicad search"]
+#
+# Only the four required services are checked by default; a profile's services are added
+# with --profiles. Exits non-zero if any checked service is unreachable, so CI can gate
+# on it.
 
 set -uo pipefail
 
 HOST="${HOST:-localhost}"
+PROFILES="${PROFILES:-}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --host) HOST="$2"; shift 2 ;;
+    --profiles) PROFILES="$2"; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 
-# name:port:path — the public proxy plus every service's own health endpoint.
+# name:port:path — the public proxy plus every required service's own health endpoint.
+# Mongo has no HTTP endpoint; the api reports it as a dependency in /health.
 CHECKS=(
   "proxy:3015:/api/health"
   "web:3016:/health"
   "api:3017:/health"
-  "mcp:3018:/health"
-  "kicad:3019:/health"
-  "sim:3020:/health"
-  "freerouting:3021:/health"
-  "pytools:3022:/health"
-  "meilisearch:7700:/health"
 )
+
+# Profile services, added only when the caller says that profile is up.
+for profile in $PROFILES; do
+  case "$profile" in
+    kicad)    CHECKS+=("kicad:3019:/health") ;;
+    search)   CHECKS+=("meilisearch:7700:/health") ;;
+    indexing) CHECKS+=("worker:3023:/health") ;;
+    *) echo "unknown profile: $profile" >&2; exit 2 ;;
+  esac
+done
 
 GREEN=$'\033[32m'; RED=$'\033[31m'; YELLOW=$'\033[33m'; DIM=$'\033[2m'; RESET=$'\033[0m'
 

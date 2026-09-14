@@ -9,52 +9,58 @@ needs Docker, a native binary, or a paid API key that CI does not have.
 
 ---
 
-## M0 — Scaffold
+## M0' — Migration
 
-**Exit criteria:** `docker compose up` serves the web app on :3015; the API health
-endpoint is green; every service exposes a health endpoint.
+**Exit criteria:** `docs/MIGRATION_V2.md` written; obsolete apps and services removed;
+compose has exactly four required services plus three optional profiles;
+`docker compose up` serves the web app on :3015 with api and mongo healthy; all existing
+tests still green.
 
 ### Automated
 
 ```bash
-pnpm --filter @syntrix/api test:run
+pnpm -r typecheck && pnpm -r test:run
+docker compose config --services            # must print exactly: proxy web api mongo
+docker compose --profile kicad --profile indexing --profile search config --quiet
 ```
 
 `apps/api/src/health.test.ts` covers the health contract: per-dependency probing, the
-roll-up rules (down vs degraded vs unknown), that `/health` needs no API key, that
-`/live` never touches a dependency, and that a partially-down stack still answers 200.
+roll-up rules (down vs degraded vs disabled), that `/health` needs no API key, that
+`/live` never touches a dependency, that a partially-down stack still answers 200, and
+that the bare four-service stack reports `ok` rather than `degraded` — an absent profile
+is a choice, not a fault.
 
-```bash
-pnpm -r typecheck && pnpm -r test:run
-```
+CI's `compose` job renders both files with `docker compose config`, which catches YAML
+errors, bad anchors and undefined required variables before they reach a VPS.
 
 ### Manual
 
 ```bash
 make env          # writes .env from .env.example
-# fill in MEILI_MASTER_KEY, MINIO_SECRET_KEY, SYNTRIX_API_KEY, MCP_BEARER_TOKEN
-make dev          # builds and starts the full stack
-make health       # probes every service
+# fill in SYNTRIX_API_KEY and MCP_BEARER_TOKEN — nothing else is required
+make dev          # builds and starts the four required services
+make health       # probes proxy, web and api
 ```
 
 **Pass when:**
 
-1. `http://localhost:3015` loads the SYNTRIX shell and the status pill reads `ok`.
-2. The stack-status table lists `kicad`, `sim`, `pytools`, `freerouting` and
-   `meilisearch`, each `up`.
-3. `make health` exits 0 and prints every service as `up`.
-4. `curl -s localhost:3015/api/health | jq .status` prints `"ok"`.
-5. `curl -s localhost:3015/mcp` returns 401 without a bearer token — the MCP surface is
-   not open to the internet.
+1. `docker compose config --services` prints exactly `proxy`, `web`, `api`, `mongo`.
+2. `http://localhost:3015` loads the SYNTRIX shell and the status pill reads `ok`.
+3. `make health` exits 0 and prints every checked service as `up`.
+4. `curl -s localhost:3015/api/health | jq .status` prints `"ok"` with both HTTP
+   dependencies reported `disabled` (no profiles running).
+5. `docker compose ps` shows `api` and `mongo` healthy.
 
-**Note on first run.** The `kicad` and `freerouting` images are large (KiCad 9 is several
-GB, Freerouting pulls a JRE). The first `make dev` takes a long time and the compose
-healthchecks have `start_period` set accordingly. A service reporting `starting` is not a
-failure until its start period elapses.
+**Optional profiles.** Each is verified separately, and only when it is needed:
+
+```bash
+make dev PROFILES=kicad        # the KiCad 9 image is several GB; first build is slow
+bash scripts/health-check.sh --profiles kicad
+```
 
 ---
 
-## M1 — Core
+## M1' — Core v2
 
 **Exit criteria:** 90% coverage on `@syntrix/core`; circuit-json conformance tests pass;
 `rc_lowpass` round-trips.
@@ -88,7 +94,7 @@ and the UI use. The suite asserts that it:
 
 ---
 
-## M2 — Parts T0 + T1
+## M2' — Parts v2
 
 **Exit criteria:** searching `"3.3V LDO SOT-223"` returns AMS1117-3.3 with a verified
 footprint.
@@ -137,55 +143,51 @@ _Added at M4._
 
 ---
 
-## M5 — Export
+## M5 — Export + Simulation
 
 **Exit criteria:** the LTspice `.asc` output parses under a written parser test; the
-`kicad` service's ERC passes on the exported `.kicad_sch` for all four fixtures.
+KiCad export opens and passes `kicad-cli sch erc` when the `kicad` profile is up
+(otherwise verified by the manual script here); `rc_lowpass` −3 dB within 5% of theory
+and op-amp gain within 2%, via the WASM ngspice path.
 
 _Added at M5._
 
 ---
 
-## M6 — Simulation
+## M6 — Agent
 
-**Exit criteria:** `rc_lowpass` -3 dB point within 5% of theory; op-amp gain within 2%.
+**Exit criteria:** a 10-prompt eval suite mixing TSX mode and operations mode, at least 8
+passing ERC plus the expected simulation metric, under MockProvider replay and under a
+live provider when a key is present; and a provider-switch test (OpenRouter → Anthropic
+by environment variable alone) that passes.
 
 _Added at M6._
 
 ---
 
-## M7 — Agent
+## M7 — Parts T2
 
-**Exit criteria:** a 10-prompt eval suite, at least 8 passing ERC plus the expected
-simulation metric, under MockProvider replay and under a live provider when a key is
-present.
+**Exit criteria:** importing an LCSC part end to end yields symbol, footprint and 3D
+model; KiCad library import works.
 
 _Added at M7._
 
 ---
 
-## M8 — Parts T2
+## M8 — MCP
 
-**Exit criteria:** importing an LCSC part end to end yields symbol, footprint and 3D
-model; KiCad library import works.
+**Exit criteria:** the MCP inspector lists every tool over both `/mcp` (Streamable HTTP,
+served by the api) and the stdio entry point; a circuit can be created end to end from an
+external MCP client.
 
 _Added at M8._
 
 ---
 
-## M9 — MCP
+## M9 — PCB
 
-**Exit criteria:** the MCP inspector lists the tools; a circuit can be created end to end
-over MCP.
+**Exit criteria:** `pcb_board` plus placement constraints routed by tscircuit's
+autorouter into `pcb_trace`; Gerber export; DSN export as an escape hatch; `kicad-cli`
+DRC passes on a 2-layer `ams1117_regulator` when the `kicad` profile is up.
 
 _Added at M9._
-
----
-
-## M10 — PCB
-
-**Exit criteria:** `pcb_board` plus placement constraints, DSN → Freerouting → SES
-yielding `pcb_trace`; Gerber export; `kicad-cli` DRC passes on a 2-layer
-`ams1117_regulator`.
-
-_Added at M10._

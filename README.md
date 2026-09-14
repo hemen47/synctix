@@ -7,6 +7,11 @@ engine**. The design document is tscircuit [`circuit-json`](https://github.com/t
 so anything SYNTRIX produces is readable by the whole tscircuit toolchain — and exportable
 to KiCad, LTspice, SPICE, Gerber and BOM/PnP.
 
+SYNTRIX is built **on** tscircuit, not beside it: rendering, autorouting, simulation,
+footprints and fabrication export come from tscircuit packages. What we add is the
+graphical editor, persistence and the operation log, a provider-agnostic agent, MCP
+tools, a curated parts library, ELK schematic layout, and an LTspice exporter.
+
 ## What makes it different
 
 - **The LLM never writes coordinates or files.** It submits typed Operations that the
@@ -22,9 +27,16 @@ to KiCad, LTspice, SPICE, Gerber and BOM/PnP.
 
 ```bash
 pnpm install
-make env        # writes .env — fill in the secrets it names
-make dev        # full stack; web on http://localhost:3015
-make health     # probe every service
+make env        # writes .env — fill in SYNTRIX_API_KEY and MCP_BEARER_TOKEN
+make dev        # four services; web on http://localhost:3015
+make health     # probe them
+```
+
+Optional extras are compose profiles, off by default:
+
+```bash
+make dev PROFILES=kicad        # kicad-cli ERC, DRC and export
+make dev PROFILES="indexing search"
 ```
 
 Without Docker, for engine work alone:
@@ -37,10 +49,10 @@ pnpm -r typecheck
 ## Layout
 
 ```
-packages/  shared core parts layout export sim agent pcb ui-canvas
-apps/      web api mcp worker
-services/  kicad sim pytools freerouting   (Dockerised native tools)
-docs/      architecture, decisions, progress, acceptance
+packages/  shared core parts layout export sim agent ui-canvas
+apps/      web api          (api also serves MCP and runs the job queue in-process)
+services/  kicad            (optional profile: a FastAPI wrapper around kicad-cli)
+docs/      architecture, decisions, progress, acceptance, migration
 ```
 
 ## Documentation
@@ -49,12 +61,14 @@ docs/      architecture, decisions, progress, acceptance
 | -------------------------------------------- | ---------------------------------------------------- |
 | [CLAUDE.md](CLAUDE.md)                       | Project rules, conventions, how to run and test      |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the system fits together and why                 |
-| [docs/ROADMAP.md](docs/ROADMAP.md)           | Milestones M0–M10 with exit criteria                 |
+| [docs/ROADMAP.md](docs/ROADMAP.md)           | Milestones M0'–M9 with exit criteria                 |
 | [docs/PROGRESS.md](docs/PROGRESS.md)         | Current state — read this first                      |
 | [docs/DECISIONS.md](docs/DECISIONS.md)       | ADRs, including where reality differed from the plan |
 | [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md)     | How each milestone is verified                       |
+| [docs/MIGRATION_V2.md](docs/MIGRATION_V2.md) | The v1 → v2 audit: what was kept, adapted, removed   |
 
 ## Status
 
-Early. M0 (scaffold) is landing; see [docs/PROGRESS.md](docs/PROGRESS.md) for the current
-task and what is next.
+Early. The engine, the parts layer and schematic layout are in; the v2 re-architecture
+(M0') is landing. See [docs/PROGRESS.md](docs/PROGRESS.md) for the current task and what
+is next.

@@ -1,8 +1,14 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-COMPOSE      := docker compose
-COMPOSE_DEV  := docker compose -f docker-compose.yml -f docker-compose.dev.yml
+# Four required services. Add optional ones with PROFILES, e.g.
+#   make dev PROFILES=kicad
+#   make up  PROFILES="kicad search"
+PROFILES     ?=
+PROFILE_ARGS := $(foreach p,$(PROFILES),--profile $(p))
+
+COMPOSE      := docker compose $(PROFILE_ARGS)
+COMPOSE_DEV  := docker compose $(PROFILE_ARGS) -f docker-compose.yml -f docker-compose.dev.yml
 KICAD_SYMBOLS_REPO    := https://gitlab.com/kicad/libraries/kicad-symbols.git
 KICAD_FOOTPRINTS_REPO := https://gitlab.com/kicad/libraries/kicad-footprints.git
 
@@ -41,7 +47,7 @@ env: ## Create .env from the example if it does not exist
 	@test -f .env || (cp .env.example .env && echo "Created .env — fill in the secrets before 'make up'")
 
 .PHONY: dev
-dev: env ## Start the dev stack with hot reload (web on :3015)
+dev: env ## Start the dev stack with hot reload (web on :3015; add PROFILES=...)
 	$(COMPOSE_DEV) up --build
 
 .PHONY: up
@@ -77,5 +83,5 @@ kicad-libs: ## Shallow-clone the KiCad symbol and footprint libraries into vendo
 	@echo "KiCad libraries ready in vendor/"
 
 .PHONY: index-parts
-index-parts: ## Rebuild the Meilisearch parts index
-	$(COMPOSE_DEV) exec worker node dist/cli.js reindex-parts
+index-parts: ## Rebuild the parts index (Mongo text index, or Meilisearch under `search`)
+	$(COMPOSE_DEV) exec api node dist/cli.js reindex-parts

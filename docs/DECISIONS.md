@@ -223,3 +223,111 @@ tests.
 
 **Revisit** if branch coverage drops below 80, which would indicate genuinely untested
 logic rather than defensive padding.
+
+---
+
+## ADR-0009 — v2: build on tscircuit; four required services
+
+**Status:** accepted · 2026-09-14 · supersedes parts of ADR-0004 and ADR-0006
+
+**Context.** v1 stood a service beside tscircuit for every heavy job: a `sim` container
+around native ngspice, a `freerouting` container around the Java router, a `pytools`
+container, MinIO for artifacts, Redis + BullMQ for jobs, Meilisearch for parts search, a
+separate `mcp` process. Twelve compose services before a single circuit had been drawn,
+and each one duplicated something a tscircuit package already did.
+
+**Decision.** tscircuit is the engine for rendering, autorouting, simulation, footprints
+and fabrication export. We build only what it lacks: the graphical editor, persistence
+and the operation log, the provider-agnostic agent, MCP tools, the curated parts library,
+ELK schematic layout and the LTspice exporter. Infrastructure shrinks to four required
+compose services — `proxy`, `web`, `api`, `mongo` — with three opt-in profiles: `kicad`
+(the `kicad-cli` wrapper), `indexing` (Redis + a BullMQ worker for bulk parts ingestion)
+and `search` (Meilisearch).
+
+**Consequences.**
+
+- `apps/mcp` folds into `apps/api` (Streamable HTTP at `/mcp`, plus a stdio entry point).
+  `apps/worker` folds into an in-process Mongo-backed queue whose handlers the `indexing`
+  profile reuses unchanged.
+- `services/sim`, `services/freerouting` and `services/pytools` are deleted. Simulation is
+  WASM ngspice in a Worker or in Node; routing is tscircuit's autorouter.
+- MinIO is deleted; artifacts are a local volume at `./data/artifacts`.
+- The api's only HTTP dependencies are now both optional, so an unconfigured URL reports
+  `disabled`, and a bare four-service stack reports `ok` rather than `degraded`.
+- **ADR-0006's Freerouting consequence is retired.** Its `@tscircuit/krt-wasm`
+  proprietary-licence note stands and still needs review before distribution — and now
+  matters more, since we route through tscircuit rather than around it.
+- **ADR-0004 is superseded.** `@syntrix/sim` keeps its `Simulator` interface, but the
+  implementation targets the WASM ngspice path tscircuit itself uses rather than
+  `eecircuit-engine` behind an HTTP service. The concrete package is confirmed at M5.
+
+---
+
+## ADR-0010 — `jlcsearch` is not a package; `@tscircuit/parts-engine` is
+
+**Status:** accepted · 2026-09-14
+
+The v2 specification named `jlcsearch` as the LCSC part-search dependency. `npm view
+jlcsearch` returns nothing: it is a **hosted service** (`jlcsearch.tscircuit.com`), not a
+published module. The published package for part search in the tscircuit ecosystem is
+`@tscircuit/parts-engine@0.0.32`.
+
+**Decision.** The M7 `LcscEasyEdaSource` adapter is written against
+`@tscircuit/parts-engine` plus the jlcsearch HTTP endpoint, with `easyeda-converter` for
+symbol, footprint and 3D extraction. Both sit behind the existing `PartsSource`
+interface, so an outage or a removed endpoint disables one source rather than breaking
+search. `@tscircuit/parts-engine`'s API is read from its `.d.ts` before the adapter is
+written.
+
+---
+
+## ADR-0011 — `@tscircuit/runframe` for the PCB and 3D viewers
+
+**Status:** accepted · 2026-09-14 · supersedes two pins in ADR-0005
+
+v1 pinned `@tscircuit/schematic-viewer@2.0.92` and `@tscircuit/pcb-viewer@1.11.394` as
+separate viewers. `@tscircuit/runframe@0.0.2725` is the current umbrella: its
+`CircuitJsonViewer` renders schematic, PCB and 3D tabs from one circuit-json array.
+
+**Decision.** Use runframe for the read-only PCB and 3D tabs. The schematic tab is **not**
+runframe — it is our own SVG canvas over `schematic-symbols`, because it has to be
+editable, and that is one of the things tscircuit does not provide. This is the line the
+v2 rulebook draws: reuse the viewer, build the editor.
+
+---
+
+## ADR-0012 — There is no `@tscircuit/autorouting` package
+
+**Status:** accepted · 2026-09-14
+
+The v2 specification referred to "the tscircuit autorouter package used by
+`@tscircuit/core`". No package by that name exists. `@tscircuit/core` routes through
+`@tscircuit/infgrid-ijump-astar@0.0.35` (already in our pinned dependency closure, see
+ADR-0006) and `@tscircuit/capacity-autorouter@0.0.905`.
+
+**Decision.** M9 routes by evaluating the design through `@tscircuit/core` and taking the
+`pcb_trace` elements it emits, rather than importing a router directly. That keeps us on
+tscircuit's own routing path and means an upgrade to `@tscircuit/core` upgrades our
+router. `dsn-converter` remains the escape hatch for anyone who wants to route the board
+in an external tool.
+
+---
+
+## ADR-0013 — `manualEdits` replaces `meta[].layoutOverride`
+
+**Status:** accepted · 2026-09-14
+
+v1 stored user placement in our own sidecar as `meta[elementId].layoutOverride`, written
+by a `set_layout_override` operation. That is a private convention: nothing outside
+SYNTRIX can read it, and it does not survive a round trip through the tscircuit
+toolchain.
+
+**Decision.** `Design` gains a first-class `manualEdits` field mirroring tscircuit's own
+manual-edits concept — schematic and PCB placement maps keyed by `source_component_id`.
+`move_component` writes it; layout reads it and never overwrites it. `meta` keeps what is
+genuinely ours: provenance, constraints, agent notes, part refs, footprint verification.
+
+**Consequences.** `set_layout_override` is removed from the operation union, taking the
+count from 16 to 15. A one-time migration moves any existing `meta[].layoutOverride` into
+`manualEdits`, with a test that a v1 document loads correctly. `@syntrix/layout` reads
+`design.manualEdits` instead of the sidecar.

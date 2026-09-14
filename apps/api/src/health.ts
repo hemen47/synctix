@@ -1,9 +1,13 @@
 /**
  * Aggregated health.
  *
- * M0's exit criterion is that every service reports health, so this endpoint probes all
- * of them and reports per-dependency status rather than a bare 200. A stack where one
+ * M0''s exit criterion is that the stack reports health, so this endpoint probes every
+ * dependency and reports per-dependency status rather than a bare 200. A stack where one
  * container is wedged should say which one.
+ *
+ * v2 has only four required services, and the api's own HTTP dependencies are both
+ * optional compose profiles: an unconfigured URL means that profile is not running, which
+ * is a deliberate choice ("disabled"), not a fault.
  */
 
 import type { Request, Response } from "express"
@@ -72,11 +76,11 @@ export const probeHttp = async (spec: ProbeSpec): Promise<DependencyHealth> => {
 }
 
 export const buildProbeSpecs = (env: NodeJS.ProcessEnv): ProbeSpec[] => [
-  { name: "kicad", url: joinUrl(env.KICAD_SERVICE_URL, "/health") },
-  { name: "sim", url: joinUrl(env.SIM_SERVICE_URL, "/health") },
-  { name: "pytools", url: joinUrl(env.PYTOOLS_SERVICE_URL, "/health") },
-  { name: "freerouting", url: joinUrl(env.FREEROUTING_SERVICE_URL, "/health") },
-  { name: "meilisearch", url: joinUrl(env.MEILI_URL, "/health") },
+  // Profile `kicad` — kicad-cli ERC/DRC/export.
+  { name: "kicad", url: joinUrl(env.KICAD_SERVICE_URL, "/health"), optional: true },
+  // Profile `search` — Meilisearch behind the same PartsIndex interface as Mongo's
+  // text index, which is what runs when this is absent.
+  { name: "meilisearch", url: joinUrl(env.MEILI_URL, "/health"), optional: true },
 ]
 
 const joinUrl = (base: string | undefined, path: string): string | undefined =>
@@ -107,7 +111,7 @@ export const createHealthHandler = (opts: {
   version: string
   startedAt: number
   env?: NodeJS.ProcessEnv
-  /** Extra probes (Mongo, Redis, MinIO) injected by the app once wired. */
+  /** Extra probes (Mongo, and Redis under the `indexing` profile) injected once wired. */
   extraProbes?: () => Promise<DependencyHealth[]>
 }) => {
   return async (_req: Request, res: Response): Promise<void> => {

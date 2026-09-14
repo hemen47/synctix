@@ -1,6 +1,13 @@
 # Production-shaped stack. Caddy is the only published entry point; everything else is
 # reachable only on the internal network.
 #
+# Four required services — proxy, web, api, mongo. Everything else is an opt-in profile
+# (v2 principle 10):
+#
+#   docker compose --profile kicad    up -d   # kicad-cli ERC/DRC/export wrapper
+#   docker compose --profile indexing up -d   # redis + BullMQ worker for bulk ingestion
+#   docker compose --profile search   up -d   # meilisearch parts index
+#
 # Dev overrides (bind mounts, hot reload, published ports for debugging) live in
 # docker-compose.dev.yml — see the Makefile.
 
@@ -10,27 +17,20 @@ x-node-env: &node-env
   NODE_ENV: ${NODE_ENV:-production}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   MONGO_URL: ${MONGO_URL:-mongodb://mongo:27017/syntrix}
-  REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-  MEILI_URL: ${MEILI_URL:-http://meilisearch:7700}
-  MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?MEILI_MASTER_KEY is required}
-  MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio}
-  MINIO_PORT: ${MINIO_PORT:-9000}
-  MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
-  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
-  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
-  MINIO_BUCKET: ${MINIO_BUCKET:-syntrix-artifacts}
-  KICAD_SERVICE_URL: http://kicad:3019
-  SIM_SERVICE_URL: http://sim:3020
-  FREEROUTING_SERVICE_URL: http://freerouting:3021
-  PYTOOLS_SERVICE_URL: http://pytools:3022
+  ARTIFACTS_DIR: ${ARTIFACTS_DIR:-/data/artifacts}
   SYNTRIX_API_KEY: ${SYNTRIX_API_KEY:?SYNTRIX_API_KEY is required}
   PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:3015}
+  # Profile-only. Empty means the feature is disabled, never that the app fails to boot.
+  KICAD_SERVICE_URL: ${KICAD_SERVICE_URL:-}
+  REDIS_URL: ${REDIS_URL:-}
+  MEILI_URL: ${MEILI_URL:-}
+  MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-}
 
 x-restart: &restart
   restart: unless-stopped
 
 services:
-  # ------------------------------------------------------------------ edge
+  # ------------------------------------------------------------- required (edge)
   proxy:
     image: caddy:2.8-alpine
     <<: *restart
@@ -43,7 +43,6 @@ services:
     depends_on:
       web: { condition: service_healthy }
       api: { condition: service_healthy }
-      mcp: { condition: service_healthy }
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3015/api/health"]
       interval: 30s
@@ -51,7 +50,7 @@ services:
       retries: 5
       start_period: 20s
 
-  # ------------------------------------------------------------------ node apps
+  # ------------------------------------------------------------- required (apps)
   web:
     build:
       context: .
@@ -72,6 +71,7 @@ services:
       retries: 5
       start_period: 15s
 
+  # REST + SSE + MCP (Streamable HTTP at /mcp) + the in-process job queue, one process.
   api:
     build:
       context: .
@@ -80,6 +80,7 @@ services:
     environment:
       <<: *node-env
       API_PORT: 3017
+      MCP_BEARER_TOKEN: ${MCP_BEARER_TOKEN:?MCP_BEARER_TOKEN is required}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
@@ -93,11 +94,10 @@ services:
       NEXAR_CLIENT_SECRET: ${NEXAR_CLIENT_SECRET:-}
       MOUSER_API_KEY: ${MOUSER_API_KEY:-}
     expose: ["3017"]
+    volumes:
+      - ./data/artifacts:/data/artifacts
     depends_on:
       mongo: { condition: service_healthy }
-      redis: { condition: service_healthy }
-      minio: { condition: service_healthy }
-      meilisearch: { condition: service_healthy }
     healthcheck:
       test:
         [
@@ -111,65 +111,25 @@ services:
       retries: 5
       start_period: 20s
 
-  mcp:
-    build:
-      context: .
-      dockerfile: apps/mcp/Dockerfile
+  # ------------------------------------------------------------- required (data)
+  mongo:
+    image: mongo:7
     <<: *restart
-    environment:
-      <<: *node-env
-      MCP_PORT: 3018
-      MCP_BEARER_TOKEN: ${MCP_BEARER_TOKEN:?MCP_BEARER_TOKEN is required}
-      API_BASE_URL: http://api:3017
-    expose: ["3018"]
-    depends_on:
-      api: { condition: service_healthy }
+    volumes:
+      - mongo-data:/data/db
+    expose: ["27017"]
     healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://localhost:3018/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 20s
 
-  worker:
-    build:
-      context: .
-      dockerfile: apps/worker/Dockerfile
-    <<: *restart
-    environment:
-      <<: *node-env
-      WORKER_HEALTH_PORT: 3023
-      DIGIKEY_CLIENT_ID: ${DIGIKEY_CLIENT_ID:-}
-      DIGIKEY_CLIENT_SECRET: ${DIGIKEY_CLIENT_SECRET:-}
-      MOUSER_API_KEY: ${MOUSER_API_KEY:-}
-    expose: ["3023"]
-    depends_on:
-      mongo: { condition: service_healthy }
-      redis: { condition: service_healthy }
-      minio: { condition: service_healthy }
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://localhost:3023/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
-  # ------------------------------------------------------------------ native tools
-  # These wrap binaries the Node services must never shell out to directly, so that
-  # KiCad, ngspice and Freerouting are versioned by image tag.
+  # ------------------------------------------------------------- profile: kicad
+  # Wraps kicad-cli so the api never shells out to a versionless binary: sch erc,
+  # pcb drc, sch export svg/pdf, pcb export gerbers/step.
   kicad:
+    profiles: ["kicad"]
     build:
       context: ./services/kicad
     <<: *restart
@@ -191,85 +151,11 @@ services:
       retries: 5
       start_period: 40s
 
-  sim:
-    build:
-      context: ./services/sim
-    <<: *restart
-    environment:
-      SIM_PORT: 3020
-    expose: ["3020"]
-    volumes:
-      - sim-work:/work
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:3020/health').status==200 else 1)",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-
-  pytools:
-    build:
-      context: ./services/pytools
-    <<: *restart
-    environment:
-      PYTOOLS_PORT: 3022
-    expose: ["3022"]
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:3022/health').status==200 else 1)",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-
-  freerouting:
-    build:
-      context: ./services/freerouting
-    <<: *restart
-    environment:
-      FREEROUTING_PORT: 3021
-    expose: ["3021"]
-    volumes:
-      - freerouting-work:/work
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:3021/health').status==200 else 1)",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-
-  # ------------------------------------------------------------------ datastores
-  mongo:
-    image: mongo:7
-    <<: *restart
-    volumes:
-      - mongo-data:/data/db
-    expose: ["27017"]
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
+  # ------------------------------------------------------------- profile: indexing
+  # Bulk parts ingestion only. Without it the same job handlers run in-process in the
+  # api against the Mongo-backed queue.
   redis:
+    profiles: ["indexing"]
     image: redis:7-alpine
     <<: *restart
     command: ["redis-server", "--appendonly", "yes"]
@@ -282,28 +168,48 @@ services:
       timeout: 5s
       retries: 5
 
-  minio:
-    image: minio/minio:latest
+  # Runs the same job handlers as the api, against BullMQ instead of the Mongo queue.
+  # The entrypoint itself arrives with the bulk ingestion jobs at M7.
+  worker:
+    profiles: ["indexing"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ["node", "apps/api/dist/worker.js"]
     <<: *restart
-    command: ["server", "/data", "--console-address", ":9001"]
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+      <<: *node-env
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      WORKER_HEALTH_PORT: 3023
+      DIGIKEY_CLIENT_ID: ${DIGIKEY_CLIENT_ID:-}
+      DIGIKEY_CLIENT_SECRET: ${DIGIKEY_CLIENT_SECRET:-}
+      MOUSER_API_KEY: ${MOUSER_API_KEY:-}
+    expose: ["3023"]
     volumes:
-      - minio-data:/data
-    expose: ["9000", "9001"]
+      - ./data/artifacts:/data/artifacts
+    depends_on:
+      mongo: { condition: service_healthy }
+      redis: { condition: service_healthy }
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 15s
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3023/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 20s
 
+  # ------------------------------------------------------------- profile: search
   meilisearch:
+    profiles: ["search"]
     image: getmeili/meilisearch:v1.11
     <<: *restart
     environment:
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?MEILI_MASTER_KEY is required}
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?MEILI_MASTER_KEY is required for the search profile}
       MEILI_ENV: ${MEILI_ENV:-production}
     volumes:
       - meili-data:/meili_data
@@ -318,10 +224,7 @@ services:
 volumes:
   mongo-data:
   redis-data:
-  minio-data:
   meili-data:
   caddy-data:
   caddy-config:
   kicad-work:
-  sim-work:
-  freerouting-work:

@@ -8,18 +8,22 @@
 
 ## Current task
 
-M0' Migration — CHECKPOINT A reached: `docs/MIGRATION_V2.md` written, `CLAUDE.md` and
-this roadmap rewritten for v2. Next is the removal pass and the compose rewrite.
+M1' Core v2 — add `manualEdits` to `Design`, migrate `meta[].layoutOverride` into it
+(ADR-0013), then TSX compile + merge and `ejectToTsx`.
+
+M0' is complete except its one live check: `docker compose up` cannot run because the
+Docker daemon is not running on this machine. Everything that does not need the daemon
+is verified — see **Blocked**.
 
 ## Next 3 tasks
 
-1. Commit the finished M3 layout package as-is (28 tests green) so the v2 migration of
-   it is a reviewable diff rather than a rewrite.
-2. M0': delete `apps/mcp`, `apps/worker`, `services/sim`, `services/freerouting`,
-   `services/pytools`, `packages/pcb`; drop them from the workspace, Turbo graph and CI.
-3. M0': rewrite `docker-compose*.yml`, `Caddyfile`, `.env.example` and the `Makefile` to
-   4 required services + 3 profiles, then run `docker compose up` and confirm web on
-   :3015 with api and mongo healthy.
+1. M1': `manualEdits` on `Design`; `move_component` writes it; `set_layout_override` is
+   removed from the operation union; a one-time migration of v1 documents, with a test.
+   Then point `@syntrix/layout` at `design.manualEdits` and re-run its 28 tests.
+2. M1': `compileTsx` over `@tscircuit/eval` in a sandbox (timeouts, no network) and
+   `mergeCompiled` with re-idding and provenance — this also closes open question 2.
+3. M1': `ejectToTsx` plus the `circuit-to-svg` render-conformance test; hold core
+   coverage at or above the ADR-0008 gate.
 
 ## Roadmap v2
 
@@ -29,11 +33,20 @@ this roadmap rewritten for v2. Next is the removal pass and the compose rewrite.
   - [x] audit written to `docs/MIGRATION_V2.md` (KEEP/ADAPT/REMOVE per item)
   - [x] `CLAUDE.md` rewritten for v2
   - [x] roadmap in this file replaced with v2 §11
-  - [ ] **CHECKPOINT A** — summary presented
-  - [ ] removals (`apps/mcp`, `apps/worker`, `services/sim`, `services/freerouting`,
-        `services/pytools`, `packages/pcb`)
-  - [ ] compose/Caddyfile/.env/Makefile reduced to 4 + 3 profiles
-  - [ ] `docker compose up` verified live (was blocked in v1 — Docker daemon down)
+  - [x] **CHECKPOINT A** — summary presented
+  - [x] removals (`apps/mcp`, `apps/worker`, `services/sim`, `services/freerouting`,
+        `services/pytools`, `packages/pcb`) — 745 loc of skeleton and superseded service
+  - [x] compose reduced to 4 required + 3 profiles; `docker compose config --services`
+        prints exactly `proxy web api mongo`, and all three profiles render clean
+  - [x] Caddyfile routes `/mcp` to the api; `.env.example` trimmed of MINIO/SIM/
+        FREEROUTING/PYTOOLS/MCP_PORT, with profile vars moved to an opt-in section
+  - [x] Makefile gains `PROFILES=`; the health-check script takes `--profiles`
+  - [x] api health probes reduced to the two optional profile services, so a bare stack
+        reports `ok` rather than `degraded` (21 tests)
+  - [x] CI builds the api and web images instead of the deleted service images
+  - [x] ADR-0009 … ADR-0013 recorded; ARCHITECTURE, ROADMAP, ACCEPTANCE, README updated
+  - [x] all tests green: 234 across shared, core, parts, layout and api
+  - [ ] **BLOCKED** — `docker compose up` verified live (Docker daemon not running)
 - [ ] **M1' Core v2** — `manualEdits`, TSX compile + merge, `ejectToTsx`; conformance
       tests including a `circuit-to-svg` render; ≥90% coverage on core.
 - [ ] **M2' Parts v2** — Mongo text-index store behind `PartsIndex`; search
@@ -80,7 +93,7 @@ named in `docs/MIGRATION_V2.md`.
   including output conformance on three fixtures. Complete but uncommitted; committed
   first, then migrated to `manualEdits` at M3.
 - **`apps/api`** — Express factory, api-key auth, problem+json errors, health probes.
-  20 tests. Extended by M0'/M8.
+  21 tests. Extended by M0'/M8.
 - **Scaffold** — pnpm workspace, Turborepo, tsconfig base, ESLint, Prettier, Husky
   (verified blocking an unformatted commit), GitHub Actions CI, `config/models.yaml`.
 
@@ -104,28 +117,39 @@ Full ADRs in `DECISIONS.md`. Summary:
 - **ADR-0007** Element conventions taken from tscircuit's own eval output, not invented.
   `@tscircuit/eval` runs under Node 24.
 - **ADR-0008** Coverage gate: 90% lines/statements/functions, 80% branches.
-
-New ADRs owed from the v2 audit (write during M0'):
-
-- `@tscircuit/runframe` replaces the separate schematic-viewer / pcb-viewer pins.
-- `jlcsearch` is not an npm package — it is a hosted API; `@tscircuit/parts-engine` is
-  the published package.
-- There is no `@tscircuit/autorouting`; `@tscircuit/core` routes via
-  `@tscircuit/infgrid-ijump-astar` and `@tscircuit/capacity-autorouter`.
+- **ADR-0009** v2: build on tscircuit; four required compose services with three opt-in
+  profiles. Supersedes ADR-0004 and retires ADR-0006's Freerouting consequence.
+- **ADR-0010** `jlcsearch` is not an npm package — it is a hosted API;
+  `@tscircuit/parts-engine@0.0.32` is the published part-search package.
+- **ADR-0011** `@tscircuit/runframe` replaces the separate schematic-viewer and
+  pcb-viewer pins, for the read-only PCB and 3D tabs only — the schematic canvas stays
+  ours, because it has to be editable.
+- **ADR-0012** There is no `@tscircuit/autorouting`; M9 takes the `pcb_trace` elements
+  `@tscircuit/core` emits rather than importing a router directly.
+- **ADR-0013** `manualEdits` replaces `meta[].layoutOverride`; `set_layout_override`
+  leaves the operation union, taking it from 16 operations to 15.
 
 ## Blocked
 
-**Live stack acceptance is unverified.** The Docker daemon was not running on the dev
-machine (`docker build` fails against `npipe:////./pipe/dockerDesktopLinuxEngine`), so
-images were never built and the stack never ran. Verified without it: both compose files
-pass `docker compose config`, the api and web servers serve correct health responses when
-run directly with Node, auth returns 401/404 correctly, and the web app builds. The v2
-4-service stack is the first thing exercised once the daemon is up.
+**Live stack acceptance is unverified.** The Docker daemon is still not running on the
+dev machine (`docker info` fails against `npipe:////./pipe/dockerDesktopLinuxEngine`), so
+images have never been built and the stack has never run. This is the single remaining
+M0' item.
+
+Verified without the daemon: `docker compose config --services` prints exactly the four
+required services, and renders clean with each profile enabled; both compose files pass
+`docker compose config --quiet`; the api and web servers serve correct health responses
+when run directly with Node; auth returns 401/404 correctly; the web app builds.
+
+To close it: start Docker Desktop and run the M0' script in `ACCEPTANCE.md` (`make dev`,
+`make health`). The v2 stack is four small services, so the first build is minutes rather
+than the multi-GB KiCad pull v1 needed — that image now sits behind `PROFILES=kicad`.
 
 ## Open questions
 
 1. **`easyeda-converter@0.0.2`** — verify its API before the M7 `LcscEasyEdaSource`
-   adapter; fallback is a direct EasyEDA-JSON → circuit-json mapping.
+   adapter; the fallback is a direct EasyEDA-JSON → circuit-json mapping. ADR-0010
+   covers the rest of that adapter's dependencies.
 2. **`@tscircuit/eval` sandboxing** — it runs under Node 24 (ADR-0007), but v2 removes
    the worker container it would have been isolated in. Decide at M1' whether in-process
    `node:vm` isolation plus timeouts and a network block is sufficient for untrusted

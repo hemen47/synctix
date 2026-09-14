@@ -69,13 +69,20 @@ describe("buildProbeSpecs", () => {
   it("derives health URLs from service base URLs", () => {
     const specs = buildProbeSpecs({
       KICAD_SERVICE_URL: "http://kicad:3019",
-      SIM_SERVICE_URL: "http://sim:3020/",
+      MEILI_URL: "http://meilisearch:7700/",
     } as NodeJS.ProcessEnv)
 
     expect(specs.find((s) => s.name === "kicad")?.url).toBe("http://kicad:3019/health")
     // A trailing slash on the base must not produce a doubled slash.
-    expect(specs.find((s) => s.name === "sim")?.url).toBe("http://sim:3020/health")
-    expect(specs.find((s) => s.name === "pytools")?.url).toBeUndefined()
+    expect(specs.find((s) => s.name === "meilisearch")?.url).toBe("http://meilisearch:7700/health")
+  })
+
+  it("probes only the optional profile services", () => {
+    // v2 has four required services and none of them is an HTTP dependency of the api:
+    // Mongo is probed through the driver, not over HTTP.
+    const specs = buildProbeSpecs({} as NodeJS.ProcessEnv)
+    expect(specs.map((s) => s.name)).toEqual(["kicad", "meilisearch"])
+    expect(specs.every((s) => s.optional)).toBe(true)
   })
 })
 
@@ -121,12 +128,9 @@ describe("probeHttp", () => {
 describe("GET /health", () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  /** A fully configured stack, so every probe actually issues a request. */
+  /** Both optional profiles enabled, so every probe actually issues a request. */
   const fullEnv = {
     KICAD_SERVICE_URL: "http://kicad:3019",
-    SIM_SERVICE_URL: "http://sim:3020",
-    PYTOOLS_SERVICE_URL: "http://pytools:3022",
-    FREEROUTING_SERVICE_URL: "http://freerouting:3021",
     MEILI_URL: "http://meilisearch:7700",
   } as NodeJS.ProcessEnv
 
@@ -145,7 +149,7 @@ describe("GET /health", () => {
     const res = await request(app).get("/health").expect(200)
 
     expect(res.body).toMatchObject({ service: "api", version: "0.1.0", status: "ok" })
-    expect(res.body.dependencies).toHaveLength(5)
+    expect(res.body.dependencies).toHaveLength(2)
     expect(res.body.uptimeSec).toBeGreaterThanOrEqual(0)
   })
 
@@ -199,12 +203,14 @@ describe("GET /health", () => {
     ).toHaveLength(1)
   })
 
-  it("reports degraded when service URLs are unconfigured", async () => {
+  it("reports ok with no profiles running", async () => {
+    // The bare four-service stack is healthy, not degraded: both HTTP dependencies are
+    // opt-in profiles, and an absent one is a deliberate choice rather than a fault.
     const app = createApp({ version: "0.1.0", startedAt: Date.now(), env: {} as NodeJS.ProcessEnv })
 
     const res = await request(app).get("/health").expect(200)
-    expect(res.body.status).toBe("degraded")
-    expect(res.body.dependencies.every((d: { status: string }) => d.status === "unknown")).toBe(
+    expect(res.body.status).toBe("ok")
+    expect(res.body.dependencies.every((d: { status: string }) => d.status === "disabled")).toBe(
       true,
     )
   })

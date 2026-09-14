@@ -18,9 +18,9 @@
 	}
 
 	# --- MCP: Streamable HTTP transport, bearer-token guarded ------------------
-	# Matched before /api so the longer prefix wins regardless of ordering.
+	# Served by the api process (v2 principle 10), on its own path prefix.
 	handle /mcp* {
-		reverse_proxy mcp:3018 {
+		reverse_proxy api:3017 {
 			# SSE and streaming responses must not be buffered.
 			flush_interval -1
 		}
