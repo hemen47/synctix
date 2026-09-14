@@ -370,6 +370,9 @@ importers:
       '@syntrix/shared':
         specifier: workspace:*
         version: link:../shared
+      '@tscircuit/footprinter':
+        specifier: 0.0.426
+        version: 0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3)
       circuit-json:
         specifier: 0.0.491
         version: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))

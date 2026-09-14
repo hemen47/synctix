@@ -93,7 +93,30 @@ and the UI use. The suite asserts that it:
 **Exit criteria:** searching `"3.3V LDO SOT-223"` returns AMS1117-3.3 with a verified
 footprint.
 
-_Added at M2._
+```bash
+pnpm --filter @syntrix/parts test:run
+```
+
+The criterion is a test, not a manual check — `parts.test.ts` asserts that the top result
+for that exact query is AMS1117-3.3, that its footprint is marked verified, that its
+package is SOT-223, that it outputs 3.3 V, **and** that the footprint it claims actually
+resolves to a land pattern with the right pad count. Claiming verification without
+resolving the geometry would make the flag meaningless.
+
+Search runs with no services up, so this passes in CI without a container. Meilisearch
+indexes the same ranking rules for T1 at scale rather than defining its own relevance.
+
+**Catalog integrity is also gated.** One test resolves every T0 part's footprint and
+checks its pad count against its declared pin count. It found five real defects when
+first run, each of which would have produced an unbuildable board:
+
+| Part               | Defect                                                                                 |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| AMS1117-3.3        | 3 pins declared against a 4-pad SOT-223 — the thermal tab (bonded to VOUT) was missing |
+| LM1117-3.3         | same                                                                                   |
+| CH340G             | 6 of 16 pins declared, leaving 10 SOIC-16 pads with no net                             |
+| Generic op-amp     | 5-pin symbol claiming a SOIC-8 footprint it has no business committing to              |
+| Tactile pushbutton | 2 pins declared against 4 pads — the two internally bridged pairs                      |
 
 ---
 

@@ -22,7 +22,8 @@
     "@syntrix/shared": "workspace:*",
     "@syntrix/core": "workspace:*",
     "circuit-json": "0.0.491",
-    "zod": "3.24.1"
+    "zod": "3.24.1",
+    "@tscircuit/footprinter": "0.0.426"
   },
   "devDependencies": {
     "typescript": "^5.7.2",

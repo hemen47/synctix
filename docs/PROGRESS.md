@@ -8,16 +8,17 @@
 
 ## Current task
 
-M2 — `@syntrix/parts`: T0 generic catalog, `PartsSource` registry, footprint resolution.
+M3 — `@syntrix/layout`: ElkLayoutStrategy, schematic conventions, override merge.
 
 ## Next 3 tasks
 
-1. M2: T0 catalog in code (passives, diodes, transistors, common ICs, connectors) with
-   real pinouts and `port_hints`, wired into core through `ApplyContext.resolvePart`.
-2. M2: footprint resolver (`@tscircuit/footprinter` string to pcb elements) with unit
-   tests on 0402/0603/SOT-23/SOIC-8/SOT-223/QFN-32/TQFP-32/TO-220/headers.
-3. M2: Mongo + Meilisearch T1 index and the `search_parts` path, to satisfy the
-   "3.3V LDO SOT-223 returns AMS1117 with a verified footprint" criterion.
+1. M3: `ElkLayoutStrategy` over elkjs — components as nodes with fixed port sides,
+   orthogonal edges to `schematic_trace`, junctions.
+2. M3: net labels for power rails instead of long wires; manual overrides win; snapshot
+   tests proving no symbol overlap on all four fixtures.
+3. M2 leftover: T1 persistence — Mongo collection plus the Meilisearch indexer job in
+   `apps/worker`. The M2 exit criterion is already met by T0 search; this is the scale-out
+   path, not a blocker.
 
 ## Milestones
 
@@ -44,7 +45,16 @@ M2 — `@syntrix/parts`: T0 generic catalog, `PartsSource` registry, footprint r
   - [x] TSX merge via `merge_circuit_json` (3 strategies)
   - [x] rc_lowpass round-trip; batch and stepwise produce identical documents
   - [x] coverage 94.3% lines / 94.9% functions / 81.0% branches (108 tests)
-- [ ] **M2 Parts T0+T1** — search returns AMS1117 with verified footprint
+- [x] **M2 Parts T0+T1** — search returns AMS1117 with verified footprint
+  - [x] T0 catalog: 34 parts with real pinouts, aliases, licence and provenance
+  - [x] footprint resolver over `@tscircuit/footprinter`, 19 packages pad-count verified
+  - [x] `verifyPinMapping` — caught 5 real catalogue defects (see ACCEPTANCE.md)
+  - [x] local search: synonyms, package aliases, voltage matching, facets, filters
+  - [x] `PartsSource` registry with federated search; disabled and failing sources are
+        skipped, never fatal
+  - [x] core bridge: `t0Resolver` makes pins addressable by datasheet name
+  - [x] AMS1117 regulator builds from catalog parts and passes ERC (41 tests)
+  - [ ] T1 persistence (Mongo + Meilisearch indexer) — exit criterion met without it
 - [ ] **M3 Layout** — fixtures lay out without overlaps
 - [ ] **M4 Editor** — Playwright place/wire/undo/export
 - [ ] **M5 Export** — LTspice .asc parser test, KiCad ERC passes
