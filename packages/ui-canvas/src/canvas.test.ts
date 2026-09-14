@@ -170,9 +170,29 @@ describe("hit testing", () => {
     ).toBe(true)
   })
 
-  it("orders results nearest first", async () => {
+  it("prefers a pin over the symbol it sits on, even when the symbol is nearer", async () => {
+    // The bug this guards: distanceToRect reports 0 anywhere inside a symbol's box, so
+    // ordering by distance first let the symbol win by 0 against a pin 0.000002mm away.
+    // Pins became unclickable and the wire tool could not start a wire.
     const scene = await laidOutScene()
-    const results = hitTest(scene, scene.symbols[0]!.bounds.center, { toleranceMm: 50 })
+    const symbol = scene.symbols[0]!
+    const pin = symbol.pins[0]!
+
+    const hits = hitTest(scene, pin.at, { toleranceMm: 5 })
+    expect(hits[0]?.node.kind).toBe("pin")
+
+    // Both are in range and effectively coincident, so distance cannot be the tiebreak.
+    const symbolHit = hits.find((h) => h.node.kind === "symbol")
+    expect(symbolHit).toBeDefined()
+    expect(Math.abs(symbolHit!.distance - hits[0]!.distance)).toBeLessThan(0.001)
+  })
+
+  it("orders results of the same kind nearest first", async () => {
+    const scene = await laidOutScene()
+    const results = hitTest(scene, scene.symbols[0]!.bounds.center, {
+      toleranceMm: 50,
+      kinds: ["symbol"],
+    })
     const distances = results.map((r) => r.distance)
     expect([...distances].sort((a, b) => a - b)).toEqual(distances)
   })

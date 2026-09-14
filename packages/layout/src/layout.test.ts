@@ -358,6 +358,76 @@ describe("manual overrides win", () => {
   })
 })
 
+describe("pins", () => {
+  it("never puts two pins of one component on the same point", async () => {
+    // ELK assigns port coordinates while routing, so a component with no edges yet gets
+    // every port at the node origin — which draws as one pin, makes the other
+    // unclickable, and lets a wire attach to whichever the hit test finds first. Pin
+    // positions are computed from the symbol's geometry instead.
+    const design = build({
+      type: "add_component",
+      partRef: "t0:resistor",
+      name: "R1",
+      props: { resistance: "10k" },
+    })
+
+    const result = await run(design)
+    const centers = result.elements
+      .filter((e) => e.type === "schematic_port")
+      .map((e) => {
+        const record = e as unknown as { center: { x: number; y: number } }
+        return `${record.center.x},${record.center.y}`
+      })
+
+    expect(centers).toHaveLength(2)
+    expect(new Set(centers).size).toBe(2)
+  })
+
+  it("keeps every pin distinct across all four fixtures", async () => {
+    for (const [name, fixture] of FIXTURES) {
+      const design = fixture()
+      const result = await run(design)
+
+      const byComponent = new Map<string, string[]>()
+      for (const element of result.elements) {
+        if (element.type !== "schematic_port") continue
+        const record = element as unknown as {
+          schematic_component_id: string
+          center: { x: number; y: number }
+        }
+        const list = byComponent.get(record.schematic_component_id) ?? []
+        list.push(`${record.center.x},${record.center.y}`)
+        byComponent.set(record.schematic_component_id, list)
+      }
+
+      for (const [componentId, centers] of byComponent) {
+        expect(new Set(centers).size, `${name}: ${componentId} has coincident pins`).toBe(
+          centers.length,
+        )
+      }
+    }
+  })
+
+  it("puts a pin outside the symbol body, where a wire can reach it", async () => {
+    const design = build({ type: "add_component", partRef: "t0:resistor", name: "R1", props: {} })
+    const result = await run(design)
+
+    const symbol = result.elements.find((e) => e.type === "schematic_component") as unknown as {
+      center: { x: number; y: number }
+      size: { width: number; height: number }
+    }
+    const ports = result.elements.filter((e) => e.type === "schematic_port") as unknown as Array<{
+      center: { x: number; y: number }
+    }>
+
+    for (const port of ports) {
+      const outsideX = Math.abs(port.center.x - symbol.center.x) >= symbol.size.width / 2
+      const outsideY = Math.abs(port.center.y - symbol.center.y) >= symbol.size.height / 2
+      expect(outsideX || outsideY).toBe(true)
+    }
+  })
+})
+
 describe("manual placement survives a relayout", () => {
   it("does not move a placed component when new components are added around it", async () => {
     // The failure this guards against is the one that makes a graphical editor unusable:

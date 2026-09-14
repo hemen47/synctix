@@ -12,7 +12,8 @@ import { applyAll, createDesign } from "./apply"
 import { validateCircuit } from "./elements"
 import { buildIndex } from "./index-view"
 import { mergeCompiled, mergeImpact, reidElements } from "./merge-compiled"
-import { compileTsx, hasErrors, hasSkew, partitionConformant } from "./tsx"
+import { compileTsx } from "./tsx"
+import { hasErrors, hasSkew, partitionConformant } from "./tsx-conformance"
 import type { Operation } from "./operations"
 
 const RC_TSX = `

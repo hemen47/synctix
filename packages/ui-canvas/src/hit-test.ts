@@ -29,12 +29,17 @@ export interface HitOptions {
 const DEFAULT_TOLERANCE_MM = 1.0
 
 /**
- * What is under a point, nearest first.
+ * What is under a point: by kind first, then by distance.
  *
- * Pins beat wires beat labels beat symbols at equal distance. That order is not
- * arbitrary: a pin sits on top of its own symbol and is the smaller target, so a symbol
- * winning the tie would make pins unclickable; and a wire ending at a pin should still
- * let you grab the pin to start a new branch.
+ * Pins beat wires beat labels beat symbols, and **not** merely at equal distance. A pin
+ * sits on or just outside its own symbol's box, and `distanceToRect` reports 0 anywhere
+ * inside that box — so ordering by distance first lets a symbol win by 0 against a pin
+ * that is 0.000002mm away, and pins become unclickable. That is not a hypothetical: it
+ * is what happened, and the wire tool could not start a wire at all.
+ *
+ * Kind-first is also just how a schematic editor behaves. The small precise target on top
+ * of the large one is the one you meant; a wire ending at a pin should still let you grab
+ * the pin to branch from it.
  */
 export const hitTest = (scene: Scene, at: Point, options: HitOptions = {}): HitResult[] => {
   const tolerance = options.toleranceMm ?? DEFAULT_TOLERANCE_MM
@@ -75,7 +80,7 @@ export const hitTest = (scene: Scene, at: Point, options: HitOptions = {}): HitR
     }
   }
 
-  return results.sort((a, b) => a.distance - b.distance || rank(a.node) - rank(b.node))
+  return results.sort((a, b) => rank(a.node) - rank(b.node) || a.distance - b.distance)
 }
 
 /** The first hit, or nothing. */

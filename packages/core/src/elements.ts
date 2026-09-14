@@ -147,6 +147,54 @@ const conform = <T>(
   ])
 }
 
+/**
+ * The numeric props an ftype's own schema insists on.
+ *
+ * Read from `circuit-json` rather than listed here, because the list is not ours and does
+ * not stay still: `source_simple_resistor` requires `resistance`, and
+ * `source_simple_potentiometer` requires **`max_resistance`**, which nothing in core
+ * would have guessed. A component built without it fails validation with "(root): Invalid
+ * input" — a message that tells a user nothing and an agent less.
+ *
+ * Probing the schema with an empty component and reading back which paths it complained
+ * about turns that into "simple_potentiometer requires max_resistance". Computed once per
+ * ftype.
+ */
+const requiredPropsCache = new Map<string, string[]>()
+
+export const requiredPropsFor = (ftype: string): readonly string[] => {
+  const cached = requiredPropsCache.get(ftype)
+  if (cached) return cached
+
+  const schema = elementSchemaFor(`source_simple_${ftype.replace(/^simple_/, "")}`)
+  if (!schema) {
+    requiredPropsCache.set(ftype, [])
+    return []
+  }
+
+  const probe = schema.safeParse({
+    type: "source_component",
+    source_component_id: "probe",
+    name: "PROBE",
+    ftype,
+  })
+
+  const required: string[] = []
+  if (!probe.success) {
+    for (const issue of probe.error.issues) {
+      const path = issue.path ?? []
+      // Only top-level scalar fields. A nested complaint is a structural problem, not a
+      // missing value we could sensibly default.
+      if (path.length === 1 && typeof path[0] === "string" && path[0] !== "type") {
+        if (!required.includes(path[0])) required.push(path[0])
+      }
+    }
+  }
+
+  requiredPropsCache.set(ftype, required)
+  return required
+}
+
 export interface CreateComponentInput {
   ftype: string
   name: string
@@ -211,6 +259,15 @@ export const createComponent = (
   const hasValue = spec.valueProp !== undefined && (spec.valueProp in props || "value" in props)
   if (spec.valueProp && !hasValue) {
     candidate[spec.valueProp] = 0
+  }
+
+  // The same rule, extended to every field this ftype's schema requires rather than only
+  // to the one core happens to know about. A potentiometer needs `max_resistance`; a part
+  // added from the catalog before its value is chosen must still produce a conformant
+  // document (principle 2), and ERC's missing_value rule reports the zero afterwards.
+  for (const required of requiredPropsFor(input.ftype)) {
+    if (required in props || required in candidate) continue
+    candidate[required] = 0
   }
 
   // The primary value gets both representations; anything else passes straight through

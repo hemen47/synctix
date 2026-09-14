@@ -24,3 +24,6 @@ vendor/kicad-footprints/
 # Vite build output for the web app
 apps/web/dist/
 scratch/
+test-results/
+playwright-report/
+.playwright/

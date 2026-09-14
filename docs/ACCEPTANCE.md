@@ -137,9 +137,29 @@ _Added at M3._
 
 ## M4 — Editor
 
-**Exit criteria:** Playwright places an R and a C, wires them, undoes, and exports SVG.
+**Exit criteria:** Playwright places an R and a C from the palette, wires them, drags one
+(with the placement persisted as a manual edit), undoes, and exports SVG.
 
-_Added at M4._
+```bash
+pnpm e2e                 # playwright test — starts the api and web dev servers itself
+pnpm --filter @syntrix/ui-canvas test:run
+```
+
+Nine Playwright tests cover the criterion and the seams around it: placing from the
+palette, wiring pin to pin, dragging and then **reloading the page** to prove the
+placement was written to `manualEdits` on the server rather than held in the browser,
+undo/redo by button and by Ctrl+Z, Delete, SVG export, and ERC.
+
+The geometry underneath — hit testing, snapping, the editor state machine — is covered by
+42 unit tests in `@syntrix/ui-canvas` with no DOM at all. The split is deliberate: a
+browser test that failed on a wrong hit-test tie-break would point at a click that did
+nothing, which is the hardest possible way to find that bug. (It is also how that bug was
+actually found; see "Bugs the tests found" in PROGRESS.md.)
+
+The api runs with its in-memory store, which is the same path a development stack with no
+`MONGO_URL` takes — a supported configuration, not a test-only one.
+
+**PCB and 3D tabs** are deferred to M9 with the rest of the PCB layer.
 
 ---
 

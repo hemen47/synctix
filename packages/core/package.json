@@ -9,6 +9,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./tsx": {
+      "types": "./src/tsx-entry.ts",
+      "default": "./src/tsx-entry.ts"
     }
   },
   "scripts": {

@@ -58,6 +58,47 @@ interface ComponentPlan {
   pinned?: { x: number; y: number }
 }
 
+/** Pins grouped by the side they sit on, in a stable order. */
+const groupBySide = (ports: PortPlan[]): Array<[PortSide, PortPlan[]]> => {
+  const bySide = new Map<PortSide, PortPlan[]>()
+  for (const port of ports) {
+    const list = bySide.get(port.side) ?? []
+    list.push(port)
+    bySide.set(port.side, list)
+  }
+  // Sorted by pin number within a side, so pin 1 is above pin 2 on a west edge rather
+  // than wherever the port list happened to put it.
+  for (const list of bySide.values()) list.sort((a, b) => a.pinNumber - b.pinNumber)
+  return [...bySide.entries()]
+}
+
+/**
+ * A point on the symbol's edge, `offset` along that edge from its midpoint.
+ *
+ * Pins sit half a pitch outside the body, which is where a wire should meet them: a pin
+ * drawn flush with the outline has nowhere for its stub to go.
+ */
+const edgePosition = (
+  side: PortSide,
+  cx: number,
+  cy: number,
+  width: number,
+  height: number,
+  offset: number,
+): { x: number; y: number } => {
+  const gap = PIN_PITCH_MM / 2
+  switch (side) {
+    case "west":
+      return { x: cx - width / 2 - gap, y: cy + offset }
+    case "east":
+      return { x: cx + width / 2 + gap, y: cy + offset }
+    case "north":
+      return { x: cx + offset, y: cy - height / 2 - gap }
+    case "south":
+      return { x: cx + offset, y: cy + height / 2 + gap }
+  }
+}
+
 export class ElkLayoutStrategy implements LayoutStrategy {
   readonly id = "elk"
   readonly label = "Layered (ELK)"
@@ -215,26 +256,36 @@ export class ElkLayoutStrategy implements LayoutStrategy {
         size: { width, height },
       } as AnyCircuitElement)
 
-      for (const elkPort of node.ports ?? []) {
-        const portPlan = plan.ports.find((p) => p.portId === elkPort.id)
-        if (!portPlan) continue
+      // Pin positions are computed here rather than taken from ELK.
+      //
+      // ELK assigns port coordinates as a side effect of routing, so a component with no
+      // edges yet — every component, the moment it is placed — gets every port at the
+      // node origin, stacking a resistor's two pins on the same point. That draws as one
+      // pin, makes the other unclickable, and lets a wire attach to whichever the hit
+      // test happened to find first.
+      //
+      // The side each pin belongs on is already decided by the schematic conventions, and
+      // the symbol's size is known, so the edge position is ours to compute: spread the
+      // pins on each side along that edge at the standard pitch, centred.
+      for (const [side, pinsOnSide] of groupBySide(plan.ports)) {
+        pinsOnSide.forEach((portPlan, index) => {
+          const offset = (index - (pinsOnSide.length - 1) / 2) * PIN_PITCH_MM
+          const { x, y } = edgePosition(side, cx, cy, width, height, offset)
+          const px = snapToGrid(x, grid)
+          const py = snapToGrid(y, grid)
+          portCenters.set(portPlan.portId, { x: px, y: py })
 
-        // Port coordinates from ELK are relative to the node's top-left, so they follow
-        // the pinned origin when there is one.
-        const px = snapToGrid(originX + (elkPort.x ?? 0), grid)
-        const py = snapToGrid(originY + (elkPort.y ?? 0), grid)
-        portCenters.set(portPlan.portId, { x: px, y: py })
-
-        elements.push({
-          type: "schematic_port",
-          schematic_port_id: newElementId("schematic_port"),
-          source_port_id: portPlan.portId,
-          schematic_component_id: schematicComponentId,
-          center: { x: px, y: py },
-          facing_direction: FACING[portPlan.side],
-          distance_from_component_edge: PIN_PITCH_MM / 2,
-          pin_number: portPlan.pinNumber,
-        } as AnyCircuitElement)
+          elements.push({
+            type: "schematic_port",
+            schematic_port_id: newElementId("schematic_port"),
+            source_port_id: portPlan.portId,
+            schematic_component_id: schematicComponentId,
+            center: { x: px, y: py },
+            facing_direction: FACING[portPlan.side],
+            distance_from_component_edge: PIN_PITCH_MM / 2,
+            pin_number: portPlan.pinNumber,
+          } as AnyCircuitElement)
+        })
       }
     }
 

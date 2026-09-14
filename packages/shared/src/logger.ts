@@ -61,9 +61,20 @@ export const silentLogger: Logger = {
   child: () => silentLogger,
 }
 
-let activeLogger: Logger = createConsoleLogger(
-  (globalThis.process?.env?.LOG_LEVEL as LogLevel) ?? "info",
-)
+/**
+ * The configured level, read without assuming Node.
+ *
+ * `@syntrix/shared` is imported by the browser bundle as well as the server, and reaching
+ * for `globalThis.process` directly makes the whole package require Node's types — which
+ * then fails to compile in a DOM-only project.
+ */
+const envLogLevel = (): LogLevel | undefined => {
+  const runtime = globalThis as { process?: { env?: Record<string, string | undefined> } }
+  const level = runtime.process?.env?.["LOG_LEVEL"]
+  return level ? (level as LogLevel) : undefined
+}
+
+let activeLogger: Logger = createConsoleLogger(envLogLevel() ?? "info")
 
 export const setLogger = (logger: Logger): void => {
   activeLogger = logger

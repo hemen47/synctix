@@ -8,22 +8,22 @@
 
 ## Current task
 
-M4 Editor — `@syntrix/ui-canvas` first: a framework-agnostic SVG scene graph over
-circuit-json with hit testing, which the React canvas then renders.
+M5 Export + Sim — the exporter registry over the tscircuit exporters, the hand-written
+LTspice `.asc` writer, and WASM ngspice behind the `Simulator` interface.
 
-M0' through M3 are complete except M0's one live check: `docker compose up` cannot run
-because the Docker daemon is not running on this machine. Everything that does not need
-the daemon is verified — see **Blocked**.
+M0' through M4 are complete except two things: M0's live `docker compose up` (the Docker
+daemon is not running on this machine) and M4's runframe-backed PCB/3D tabs, which are
+deferred to M9 when there is PCB data worth viewing. See **Blocked**.
 
 ## Next 3 tasks
 
-1. M4: `@syntrix/ui-canvas` — scene graph built from circuit-json plus `schematic-symbols`
-   geometry, hit testing for symbols, pins and wires, and grid snapping. Framework-free,
-   so it is unit-testable without a browser.
-2. M4: the three-pane web shell — palette, canvas, inspector — wired to the api, with the
-   keyboard map (W wire, R rotate, Del, Ctrl+Z/Y, Esc).
-3. M4: the api routes the editor needs — designs CRUD, operation apply with optimistic
-   concurrency, undo/redo from the log — then the Playwright path.
+1. M5: `Exporter` registry wrapping `circuit-json-to-spice`, `circuit-json-to-kicad`,
+   `circuit-json-to-bom-csv`, `circuit-json-to-pnp-csv` and `circuit-to-svg`, with golden
+   fixtures — verifying each package's real API before writing the adapter.
+2. M5: the LTspice `.asc` exporter, which tscircuit does not have, proved by a written
+   parser that reads the output back.
+3. M5: `TscircuitNgspiceSimulator` — confirm which WASM ngspice package tscircuit's own
+   simulate path loads (open question 4), then rc_lowpass −3 dB within 5%.
 
 ## Roadmap v2
 
@@ -92,8 +92,23 @@ the daemon is verified — see **Blocked**.
         it — the failure that makes a graphical editor unusable
   - [x] `clear_placement` visibly hands a component back to ELK
   - [x] 34 layout tests
-- [ ] **M4 Editor** — Playwright: place R and C from the palette, wire them, drag
-      (manualEdits persisted), undo, export SVG; PCB/3D tabs render via runframe.
+- [x] **M4 Editor** — Playwright: place R and C from the palette, wire them, drag
+      (manualEdits persisted), undo, export SVG.
+  - [x] `@syntrix/ui-canvas`: scene graph over circuit-json using `schematic-symbols`
+        artwork, hit testing, viewport maths, and the editor state machine — all pure
+        functions over plain data, 42 tests, no DOM
+  - [x] the state machine emits Operations and never mutates a design; a drag that did
+        not move emits nothing, and Ctrl+Z emits nothing because undo is a log replay
+  - [x] api: designs CRUD, operations with optimistic concurrency, history, undo/redo,
+        layout, ERC, summary, parts search and pinout (41 tests)
+  - [x] the append-only log with `mintedIds`, so replay reproduces ids exactly
+  - [x] three-pane React shell — palette, SVG canvas, inspector — with the keyboard map
+  - [x] designs have a URL, so a reload returns to the same document
+  - [x] 9 Playwright tests green: place, wire, drag-and-reload, undo/redo, Ctrl+Z, Delete,
+        export SVG, ERC
+  - [ ] **DEFERRED to M9** — PCB and 3D tabs via `@tscircuit/runframe`. There is no PCB
+        layer in a design until M9, so the tabs would render an empty board; building the
+        viewer before there is anything to view would be building it twice.
 - [ ] **M5 Export + Sim** — LTspice `.asc` parses via a written parser test; KiCad export
       opens and passes `kicad-cli` ERC when the profile is up; rc_lowpass −3 dB within
       5% and op-amp gain within 2% via WASM ngspice.
@@ -109,6 +124,37 @@ the daemon is verified — see **Blocked**.
       `pcb_trace`; Gerber export; DSN export as an escape hatch; `kicad-cli` DRC passes
       on a 2-layer ams1117_regulator board when the profile is up; PCB tab becomes
       editable for placement.
+
+## Bugs the tests found
+
+Recording these because each was invisible to the layer above it, and each is the kind
+that comes back.
+
+- **Replay regenerated element ids.** `apply` mints ids as it goes, so folding a log with
+  a fresh factory produced a structurally identical design with different ids — orphaning
+  the id-keyed `meta` sidecar and invalidating every id a client held. Undo would have
+  broken both silently. Log entries now record what they minted. Found by asserting that
+  a design folded from its log equals the one the store served.
+- **Both pins of a passive landed on the same point.** ELK assigns port coordinates while
+  routing, so a component with no edges yet — every component, the moment it is placed —
+  got every port at the node origin. It drew as one pin, made the other unclickable, and
+  let a wire attach to whichever the hit test found first. Pin positions are computed from
+  the symbol's own geometry now. The layout tests passed throughout: they checked that
+  _components_ did not overlap, not that pins within one were distinct.
+- **A symbol's box beat its own pin in the hit test.** `distanceToRect` reports 0 anywhere
+  inside a symbol, so sorting by distance first let the symbol win by 0 against a pin
+  0.000002mm away. Pins were unclickable and the wire tool could not start a wire. Hit
+  testing sorts by kind first now, which was what its own comment already claimed.
+- **The wire preview swallowed the click that would finish the wire.** It follows the
+  cursor, so it sat between the cursor and the destination pin. Decoration is
+  `pointer-events: none` now.
+- **`simple_potentiometer` could not be added at all.** circuit-json requires
+  `max_resistance` on it, which core had no way to know. Required props are read from the
+  schema itself now, rather than from a list in core that would drift.
+- **The editor created two designs per load**, because React StrictMode invokes an effect
+  twice and both ran before the first `await` resolved. A state check cannot guard across
+  an await; a shared promise can.
+- **A reload started a new empty design.** Designs had no address. They have a URL now.
 
 ## Carried forward from v1 (work that survives)
 
