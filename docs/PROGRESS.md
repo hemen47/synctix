@@ -8,14 +8,13 @@
 
 ## Current task
 
-M0 — scaffold: workspace packages, Docker Compose stack, service health endpoints.
+M1 — `@syntrix/shared` (ids, SI units, logger) then `@syntrix/core` document store.
 
 ## Next 3 tasks
 
-1. Finish M0: `docker-compose.yml` + dev override, Caddyfile, Makefile, `.env.example`,
-   service Dockerfiles with health endpoints, CI workflow.
-2. M1: `@syntrix/shared` (Result, ids, SI units, errors, logger) with tests.
-3. M1: `@syntrix/core` document + indexed view + Operation union + `apply` reducer.
+1. M1: `@syntrix/shared` — id generation, SI unit parsing, logger, with tests.
+2. M1: `@syntrix/core` — element factories, indexed view, `apply` reducer.
+3. M1: ERC v1, `summarizeForLLM`, TSX merge, `rc_lowpass` round-trip fixture.
 
 ## Milestones
 
@@ -24,13 +23,14 @@ M0 — scaffold: workspace packages, Docker Compose stack, service health endpoi
   - [x] verify all 17 tscircuit packages exist and resolve versions
   - [x] verify circuit-json element shapes empirically (ADR-0003)
   - [x] CLAUDE.md, ARCHITECTURE.md, ROADMAP.md, PROGRESS.md, DECISIONS.md
-  - [ ] package skeletons with interfaces (shared, core, parts, layout, export, sim, agent, pcb, ui-canvas)
-  - [ ] app skeletons (web, api, mcp, worker)
-  - [ ] service Dockerfiles + FastAPI wrappers (kicad, sim, pytools)
-  - [ ] docker-compose.yml, docker-compose.dev.yml, Caddyfile, Makefile, .env.example
-  - [ ] config/models.yaml
-  - [ ] GitHub Actions CI, Husky pre-commit
-  - [ ] ESLint config
+  - [x] package skeletons with interfaces (shared, core, parts, layout, export, sim, agent, pcb, ui-canvas)
+  - [x] app skeletons (web, api, mcp, worker) — api health tested, web shell renders it
+  - [x] service Dockerfiles + FastAPI wrappers (kicad, sim, pytools, freerouting)
+  - [x] docker-compose.yml, docker-compose.dev.yml, Caddyfile, Makefile, .env.example
+  - [x] config/models.yaml
+  - [x] GitHub Actions CI, Husky pre-commit (verified: it blocked an unformatted commit)
+  - [x] ESLint config
+  - [ ] **BLOCKED** — `make dev` end-to-end run (needs Docker Desktop running locally)
 - [ ] **M1 Core** — 90% coverage, conformance tests, rc_lowpass round-trip
 - [ ] **M2 Parts T0+T1** — search returns AMS1117 with verified footprint
 - [ ] **M3 Layout** — fixtures lay out without overlaps
@@ -57,6 +57,19 @@ Full ADRs in `DECISIONS.md`. Summary:
   published at 0.0.0, a placeholder). Provisional until M6.
 - **ADR-0005** All 17 tscircuit packages exist; versions pinned exactly (0.0.x packages
   have no semver guarantee). `easyeda-converter` is at 0.0.2 — verify before M8.
+
+## Blocked
+
+**M0 manual acceptance is unverified.** The Docker daemon was not running on the dev
+machine (`docker build` fails with `failed to connect to the docker API at
+npipe:////./pipe/dockerDesktopLinuxEngine`), so image builds and the live stack were
+never exercised. What _is_ verified: both compose files pass `docker compose config`
+(which does not need the daemon), the API and web servers start and serve correct health
+responses when run directly with Node, auth returns 401/404 correctly, and the web app
+builds.
+
+To finish M0, start Docker Desktop and run the script in `ACCEPTANCE.md` (`make dev`,
+`make health`). Expect a long first build — the KiCad 9 image is several GB.
 
 ## Open questions
 

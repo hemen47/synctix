@@ -114,3 +114,89 @@ the fallback.
 **Note.** Every version above is pinned exactly in the relevant `package.json`. These are
 0.0.x packages with no semver stability guarantee; unpinned ranges would make builds
 irreproducible.
+
+---
+
+## ADR-0006 — tscircuit packages under-declare dependencies; pin the closure at the root
+
+**Status:** accepted · 2026-09-14
+
+**Context.** Getting `@tscircuit/eval` to run in Node required chasing a chain of
+`ERR_MODULE_NOT_FOUND` failures. Each was a package imported at runtime but declared in
+neither `dependencies` nor `peerDependencies` of the package importing it:
+
+| Missing package                          | Imported by                      |
+| ---------------------------------------- | -------------------------------- |
+| `zod`                                    | `circuit-json`                   |
+| `@tscircuit/soup-util`                   | `@tscircuit/infgrid-ijump-astar` |
+| `calculate-elbow`                        | `@tscircuit/core`                |
+| `@tscircuit/infer-cable-insertion-point` | `@tscircuit/core`                |
+| `@tscircuit/copper-pour-solver`          | `@tscircuit/core`                |
+| `@tscircuit/schematic-trace-solver`      | `@tscircuit/core`                |
+| `connectivity-map`                       | `@tscircuit/core`                |
+| `flatbush`                               | `@tscircuit/core`                |
+| `@tscircuit/miniflex`                    | `@tscircuit/core`                |
+| `minicssgrid`                            | `@tscircuit/core`                |
+| `spicey`                                 | `@tscircuit/core`                |
+| `@tscircuit/krt-wasm`                    | `@tscircuit/core`                |
+
+`@tscircuit/core` also declares 18 `peerDependencies` at `"*"`, which pins nothing.
+
+**Options considered.**
+
+1. `node-linker=hoisted` — give the packages the flat npm-style tree they were written
+   against. Tried first; pnpm 11.9 did not apply the setting from either `.npmrc` or
+   `pnpm-workspace.yaml`, and it would also expose phantom dependencies to our own code.
+2. **Declare the whole closure as root devDependencies.** Node's ESM resolution walks up
+   from `node_modules/.pnpm/<pkg>/node_modules/<pkg>/dist/` to the workspace root
+   `node_modules/`, so a root-installed package is reachable from any nested package
+   without hoisting.
+
+**Decision.** Option 2. Every package in the table above is an explicit root
+devDependency, pinned. pnpm's isolated layout is kept, so our own packages still cannot
+import what they have not declared.
+
+**Consequences.**
+
+- Upgrading `@tscircuit/eval` or `@tscircuit/core` may surface new undeclared imports.
+  The symptom is a clear `ERR_MODULE_NOT_FOUND` naming the package; the fix is to add it
+  here and to the root manifest.
+- **`@tscircuit/krt-wasm` is Proprietary-licensed** (a WASM fork of the KiCad routing
+  tools). It arrives transitively through `@tscircuit/core`. This must be reviewed before
+  any distribution of SYNTRIX, and it is a further reason M10 routes through Freerouting
+  (GPL, run out-of-process in its own container) rather than through tscircuit's
+  autorouter.
+- `sharp` (a transitive native image dependency) needs its install script; it is allowed
+  in `pnpm-workspace.yaml` under `allowBuilds`.
+
+---
+
+## ADR-0007 — Element conventions taken from tscircuit's own output, not invented
+
+**Status:** accepted · 2026-09-14
+
+Rather than guess how to shape elements, a real circuit (two passives and a trace) was
+evaluated through `@tscircuit/eval` and the output inspected. `@syntrix/core`'s element
+factories follow what came back:
+
+- **Values are stored twice.** A 10k resistor carries `resistance: 10000` _and_
+  `display_resistance: "10kΩ"`. The numeric field is what tools compute with; the display
+  field preserves what the user wrote. Our factories set both — writing only the number
+  loses the author's intent, and writing only the string breaks every consumer.
+- **`port_hints` is the alternate-name mechanism.** A resistor's pin 1 carries
+  `port_hints: ["pin1", "pos", "anode", "1", "left"]`. This is what makes
+  `connect({ component: "R1", pin: "pos" })` resolvable, so `PartDefinition.pins[].altNames`
+  maps onto `port_hints` rather than into our sidecar.
+- **Passives declare `are_pins_interchangeable: true`**, which ERC needs in order not to
+  report a "reversed" resistor.
+- Components belong to a `source_group` via `source_group_id`; a complete document also
+  carries `source_project_metadata` and, for a board, `source_board`.
+- A full evaluation emits `pcb_*`, `schematic_*` and `cad_component` elements as well —
+  24 element types for a two-component circuit. Core generates only the `source_*` layer
+  itself and lets `@syntrix/layout` own the `schematic_*` layer, so the two never fight
+  over the same elements.
+
+**Consequence.** Open question 2 is partly answered: `@tscircuit/eval` does run under
+Node 24, so TSX mode is viable. Whether its sandbox is strong enough for untrusted
+LLM-authored TSX is still open, and the answer is expected to be "run it in the worker
+container with resource limits" regardless.

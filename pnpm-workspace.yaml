@@ -8,6 +8,10 @@ allowBuilds:
   # An optional native accelerator for msgpackr (a bullmq dependency). The pure-JS
   # path is used when it is absent, so we skip the native build.
   msgpackr-extract: false
+  # sharp ships prebuilt native binaries; its install script fetches them.
+  sharp: true
 minimumReleaseAgeExclude:
   - circuit-json@0.0.491
   - bullmq@6.3.6
+  - "@tscircuit/core@0.0.1906"
+  - "@tscircuit/eval@0.0.1402"
