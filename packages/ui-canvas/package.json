@@ -19,12 +19,15 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
+    "@syntrix/core": "workspace:*",
     "@syntrix/shared": "workspace:*",
-    "circuit-json": "0.0.491"
+    "circuit-json": "0.0.491",
+    "schematic-symbols": "0.0.244"
   },
   "devDependencies": {
+    "@syntrix/layout": "workspace:*",
+    "@types/node": "^22.10.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8",
-    "@types/node": "^22.10.2"
+    "vitest": "^2.1.8"
   }
 }

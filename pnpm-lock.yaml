@@ -390,13 +390,22 @@ importers:
 
   packages/ui-canvas:
     dependencies:
+      '@syntrix/core':
+        specifier: workspace:*
+        version: link:../core
       '@syntrix/shared':
         specifier: workspace:*
         version: link:../shared
       circuit-json:
         specifier: 0.0.491
         version: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
+      schematic-symbols:
+        specifier: 0.0.244
+        version: 0.0.244(typescript@5.9.3)
     devDependencies:
+      '@syntrix/layout':
+        specifier: workspace:*
+        version: link:../layout
       '@types/node':
         specifier: ^22.10.2
         version: 22.20.2
