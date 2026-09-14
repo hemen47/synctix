@@ -8,24 +8,21 @@
 
 ## Current task
 
-M2' Parts v2 — the Mongo-backed T1 store behind a `PartsIndex` interface, with
-Meilisearch demoted to an adapter under the `search` profile.
+M3 Layout — migrate the ELK strategy's snapshot coverage onto `manualEdits` and prove no
+symbol overlap on all four fixtures.
 
-M0' and M1' are complete except M0's one live check: `docker compose up` cannot run
+M0', M1' and M2' are complete except M0's one live check: `docker compose up` cannot run
 because the Docker daemon is not running on this machine. Everything that does not need
 the daemon is verified — see **Blocked**.
 
 ## Next 3 tasks
 
-1. M2': `PartsIndex` interface plus a Mongo implementation with a text index over mpn,
-   description, category and package, and structured electrical fields for filtering.
-   The existing local T0 search becomes the no-database implementation of the same
-   interface.
-2. M2': prove the exit criterion under the new store — "3.3V LDO SOT-223" returns
-   AMS1117-3.3 with a verified footprint — and keep it passing with no database running.
-3. M2': a Meilisearch adapter behind the same interface, reachable only when the `search`
-   profile is enabled, with the adapter reporting `disabled` rather than failing when it
-   is not.
+1. M3: snapshot tests over all four golden fixtures asserting no overlapping symbol
+   bounding boxes, not merely that layout returned something.
+2. M3: prove manual placement wins — a moved component keeps its position across a
+   relayout that adds new components around it.
+3. M4: the editor. `@syntrix/ui-canvas` scene graph and hit testing first, then the
+   three-pane web shell and the Playwright path (place, wire, drag, undo, export SVG).
 
 ## Roadmap v2
 
@@ -72,9 +69,19 @@ the daemon is verified — see **Blocked**.
         all (ADR-0014)
   - [x] core 148 tests, 94.7% lines / 83.1% branches — above the ADR-0008 gate;
         272 across the workspace
-- [ ] **M2' Parts v2** — Mongo text-index store behind `PartsIndex`; search
+- [x] **M2' Parts v2** — Mongo text-index store behind `PartsIndex`; search
       "3.3V LDO SOT-223" → AMS1117 with a verified footprint; Meilisearch only under the
       `search` profile.
+  - [x] `PartsIndex` interface with three implementations — local, Mongo, Meilisearch
+  - [x] ranking is shared, not per-index: Mongo narrows, the T0 scorer ranks, and a test
+        asserts Mongo and local return the same order for the same query
+  - [x] `toMongoFilter` is a pure function, tested without a database — including regex
+        escaping, so "AMS1117-3.3" cannot compile into a pattern where "." matches
+        anything
+  - [x] Meilisearch reports `disabled` with no URL and never throws for it; range filters
+        stay with the indexes that can express them
+  - [x] exit criterion passes on the local index, so it holds with nothing running
+  - [x] 59 parts tests; 290 across the workspace
 - [ ] **M3 Layout** — fixtures lay out with no overlapping symbols; snapshot tests;
       `manualEdits` win over automatic placement.
 - [ ] **M4 Editor** — Playwright: place R and C from the palette, wire them, drag

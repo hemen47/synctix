@@ -144,7 +144,7 @@ const scorePart = (part: PartDefinition, terms: string[]): ScoredPart => {
   return { part, score, matched }
 }
 
-const matchesFilters = (part: PartDefinition, filters?: PartFilters): boolean => {
+export const matchesFilters = (part: PartDefinition, filters?: PartFilters): boolean => {
   if (!filters) return true
 
   if (filters.category && normalise(part.category) !== normalise(filters.category)) return false
