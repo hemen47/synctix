@@ -25,6 +25,8 @@ export const ERROR_CODES = [
   "CIRCUIT_JSON_INVALID",
   "MERGE_CONFLICT",
   "VERSION_CONFLICT",
+  // tsx mode
+  "TSX_COMPILE_FAILED",
   // parts
   "PART_NOT_FOUND",
   "PART_SOURCE_DISABLED",

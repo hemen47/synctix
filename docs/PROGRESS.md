@@ -8,22 +8,24 @@
 
 ## Current task
 
-M1' Core v2 — add `manualEdits` to `Design`, migrate `meta[].layoutOverride` into it
-(ADR-0013), then TSX compile + merge and `ejectToTsx`.
+M2' Parts v2 — the Mongo-backed T1 store behind a `PartsIndex` interface, with
+Meilisearch demoted to an adapter under the `search` profile.
 
-M0' is complete except its one live check: `docker compose up` cannot run because the
-Docker daemon is not running on this machine. Everything that does not need the daemon
-is verified — see **Blocked**.
+M0' and M1' are complete except M0's one live check: `docker compose up` cannot run
+because the Docker daemon is not running on this machine. Everything that does not need
+the daemon is verified — see **Blocked**.
 
 ## Next 3 tasks
 
-1. M1': `manualEdits` on `Design`; `move_component` writes it; `set_layout_override` is
-   removed from the operation union; a one-time migration of v1 documents, with a test.
-   Then point `@syntrix/layout` at `design.manualEdits` and re-run its 28 tests.
-2. M1': `compileTsx` over `@tscircuit/eval` in a sandbox (timeouts, no network) and
-   `mergeCompiled` with re-idding and provenance — this also closes open question 2.
-3. M1': `ejectToTsx` plus the `circuit-to-svg` render-conformance test; hold core
-   coverage at or above the ADR-0008 gate.
+1. M2': `PartsIndex` interface plus a Mongo implementation with a text index over mpn,
+   description, category and package, and structured electrical fields for filtering.
+   The existing local T0 search becomes the no-database implementation of the same
+   interface.
+2. M2': prove the exit criterion under the new store — "3.3V LDO SOT-223" returns
+   AMS1117-3.3 with a verified footprint — and keep it passing with no database running.
+3. M2': a Meilisearch adapter behind the same interface, reachable only when the `search`
+   profile is enabled, with the adapter reporting `disabled` rather than failing when it
+   is not.
 
 ## Roadmap v2
 
@@ -47,8 +49,29 @@ is verified — see **Blocked**.
   - [x] ADR-0009 … ADR-0013 recorded; ARCHITECTURE, ROADMAP, ACCEPTANCE, README updated
   - [x] all tests green: 234 across shared, core, parts, layout and api
   - [ ] **BLOCKED** — `docker compose up` verified live (Docker daemon not running)
-- [ ] **M1' Core v2** — `manualEdits`, TSX compile + merge, `ejectToTsx`; conformance
+- [x] **M1' Core v2** — `manualEdits`, TSX compile + merge, `ejectToTsx`; conformance
       tests including a `circuit-to-svg` render; ≥90% coverage on core.
+  - [x] `manualEdits` on `Design`, using `@tscircuit/props`' own `manual_edits_file`
+        schema rather than one of ours (ADR-0018); keyed by component name, not id
+  - [x] `move_component` writes it, `clear_placement` removes it, `set_layout_override`
+        is gone — 15 operations, down from 16
+  - [x] `migrateDesign` lifts v1 documents on load, idempotently, reporting orphans
+  - [x] `@syntrix/layout` reads `design.manualEdits`; its 28 tests still pass
+  - [x] `compileTsx` over `@tscircuit/eval` — CDN off, timeout, runner killed on every
+        path (ADR-0015, closing open question 2)
+  - [x] `partitionConformant` handles the renderer/schema skew without letting a
+        non-conformant element into the document (ADR-0016)
+  - [x] `CompiledTsx.diagnostics` surfaces the errors tscircuit reports without throwing
+        (ADR-0017) — a bad selector compiles clean, which would otherwise be silent
+  - [x] `mergeCompiled` re-ids structurally, records provenance for what landed, and
+        `mergeImpact` says what a merge would overwrite before it happens
+  - [x] `ejectToTsx`, proved by recompiling its own output and comparing connectivity
+  - [x] conformance: both fixtures render through `circuit-to-svg`'s schematic and PCB
+        renderers without throwing
+  - [x] React pinned to 19 workspace-wide, which is what made `@tscircuit/eval` run at
+        all (ADR-0014)
+  - [x] core 148 tests, 94.7% lines / 83.1% branches — above the ADR-0008 gate;
+        272 across the workspace
 - [ ] **M2' Parts v2** — Mongo text-index store behind `PartsIndex`; search
       "3.3V LDO SOT-223" → AMS1117 with a verified footprint; Meilisearch only under the
       `search` profile.
@@ -128,6 +151,20 @@ Full ADRs in `DECISIONS.md`. Summary:
   `@tscircuit/core` emits rather than importing a router directly.
 - **ADR-0013** `manualEdits` replaces `meta[].layoutOverride`; `set_layout_override`
   leaves the operation union, taking it from 16 operations to 15.
+- **ADR-0014** One React, and it is 19: a transitive `calculate-cell-boundaries` pulls
+  React 18 into pnpm's hidden hoist directory, where it shadowed React for
+  `@tscircuit/eval`. Overridden workspace-wide; `apps/web` moved to 19 to match.
+- **ADR-0015** TSX isolation is in-process with CDN off, a timeout and a guaranteed kill.
+  Adequate for trusted input; untrusted input needs a process boundary, decided at M8.
+- **ADR-0016** tscircuit's renderer and `circuit-json`'s schema disagree about
+  `pcb_component.display_offset_x`. The field is stripped, never coerced, and the skew is
+  reported rather than hidden.
+- **ADR-0017** A bad tscircuit selector does not throw — it becomes a
+  `source_trace_not_connected_error` element. `compileTsx` lifts those into
+  `diagnostics`, and the M6 agent loop must treat them as a failed call.
+- **ADR-0018** `@tscircuit/props` exports the manual-edits schema; we use it verbatim.
+  It keys placements by selector/name, not `source_component_id` as the spec assumed —
+  which is what makes a user's drag survive a TSX recompile.
 
 ## Blocked
 
@@ -150,10 +187,10 @@ than the multi-GB KiCad pull v1 needed — that image now sits behind `PROFILES=
 1. **`easyeda-converter@0.0.2`** — verify its API before the M7 `LcscEasyEdaSource`
    adapter; the fallback is a direct EasyEDA-JSON → circuit-json mapping. ADR-0010
    covers the rest of that adapter's dependencies.
-2. **`@tscircuit/eval` sandboxing** — it runs under Node 24 (ADR-0007), but v2 removes
-   the worker container it would have been isolated in. Decide at M1' whether in-process
-   `node:vm` isolation plus timeouts and a network block is sufficient for untrusted
-   LLM-authored TSX, or whether a dedicated child process with resource limits is needed.
+2. ~~**`@tscircuit/eval` sandboxing**~~ — resolved by ADR-0015. In-process with CDN
+   loading off, a timeout and a guaranteed kill is adequate for trusted input; an
+   untrusted caller needs a process boundary, which is decided at M8 when MCP exposes
+   `generate_tsx_circuit` externally.
 3. **KiCad symbol licensing** — kicad-symbols is CC-BY-SA 4.0 with an exception; record
    the exact terms per part in `provenance` and surface it in the BOM export. Confirm
    the wording at M7.

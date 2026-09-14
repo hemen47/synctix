@@ -15,3 +15,13 @@ minimumReleaseAgeExclude:
   - bullmq@6.3.6
   - "@tscircuit/core@0.0.1906"
   - "@tscircuit/eval@0.0.1402"
+
+# `calculate-cell-boundaries`, a transitive dependency of @tscircuit/core, hard-depends
+# on react 18.3.1 (it only uses it for lucide-react in its debug graphics). pnpm hoists
+# that copy into node_modules/.pnpm/node_modules/, where it shadows react for every
+# package inside .pnpm/ — including @tscircuit/eval, whose reconciler is built for
+# react 19. The symptom is "A React Element from an older version of React was rendered"
+# on any eval. One react, chosen to match tscircuit (ADR-0014).
+overrides:
+  react: 19.3.0
+  react-dom: 19.3.0

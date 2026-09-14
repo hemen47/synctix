@@ -324,6 +324,83 @@ export const isType = <T extends AnyCircuitElement["type"]>(
  * Used by `merge_circuit_json` to vet anything arriving from TSX mode or an import, and
  * by the conformance tests to prove core never emits a non-spec element.
  */
+/** The shape of a zod issue we actually read. */
+export interface ZodIssueLike {
+  path?: Array<string | number>
+  message?: string
+}
+
+export interface ElementSchema {
+  safeParse: (
+    value: unknown,
+  ) => { success: true } | { success: false; error: { issues: ZodIssueLike[] } }
+}
+
+/**
+ * The schema for one element type, by name.
+ *
+ * circuit-json exports every branch of the union under its own type name
+ * (`cj.pcb_component`, `cj.source_trace`, ...). Reaching for the branch directly gives
+ * precise issues -- `display_offset_x: expected string, received number` -- where parsing
+ * against the 164-branch union only ever says "invalid union", with every branch's
+ * complaints mixed together and nothing to act on.
+ */
+export const elementSchemaFor = (type: string): ElementSchema | undefined => {
+  const candidate = (cj as unknown as Record<string, unknown>)[type]
+  return candidate && typeof (candidate as ElementSchema).safeParse === "function"
+    ? (candidate as ElementSchema)
+    : undefined
+}
+
+/**
+ * Every element type `circuit-json`'s union accepts, read from the schema rather than
+ * listed by hand — a hand-written list would drift the first time the spec moved.
+ *
+ * Walking it is not as simple as reading `option.shape.type`: `any_circuit_element`'s
+ * branches are not all plain objects. Some are unions (`pcb_solder_paste`), some
+ * discriminated unions (`pcb_smtpad`, one branch per pad shape), and some are
+ * `ZodEffects` wrapping any of those. A collector that only understood `ZodObject`
+ * would silently report a third of the spec as unknown.
+ *
+ * Computed once: there are 164 branches and the walk is not free.
+ */
+let knownTypes: Set<string> | undefined
+export const circuitJsonElementTypes = (): ReadonlySet<string> => {
+  if (knownTypes) return knownTypes
+
+  const types = new Set<string>()
+  const visit = (schema: unknown, depth = 0): void => {
+    if (!schema || typeof schema !== "object" || depth > 6) return
+    const def = (schema as { _def?: Record<string, unknown> })._def
+    if (!def) return
+
+    // A plain object branch: its `type` field is a literal naming the element.
+    const literal = (schema as { shape?: { type?: { _def?: { value?: unknown } } } }).shape?.type
+      ?._def?.value
+    if (typeof literal === "string") {
+      types.add(literal)
+      return
+    }
+
+    // ZodEffects (a .refine or .transform) wraps the real schema.
+    if (def["schema"]) return visit(def["schema"], depth + 1)
+
+    // ZodUnion keeps its branches in an array; ZodDiscriminatedUnion in a Map as well.
+    const options = def["options"]
+    if (Array.isArray(options)) {
+      for (const option of options) visit(option, depth + 1)
+      return
+    }
+    if (options instanceof Map) {
+      for (const option of options.values()) visit(option, depth + 1)
+    }
+  }
+
+  for (const option of cj.any_circuit_element.options) visit(option)
+  knownTypes = types
+  return knownTypes
+}
+
 export const validateCircuit = (
   elements: unknown[],
 ): Result<AnyCircuitElement[], ValidationError[]> => {

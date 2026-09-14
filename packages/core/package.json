@@ -20,13 +20,15 @@
   },
   "dependencies": {
     "@syntrix/shared": "workspace:*",
+    "@tscircuit/eval": "0.0.1402",
+    "@tscircuit/props": "0.0.653",
     "circuit-json": "0.0.491",
-    "zod": "3.24.1",
-    "@tscircuit/props": "0.0.653"
+    "zod": "3.24.1"
   },
   "devDependencies": {
+    "@types/node": "^22.10.2",
+    "circuit-to-svg": "0.0.416",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8",
-    "@types/node": "^22.10.2"
+    "vitest": "^2.1.8"
   }
 }

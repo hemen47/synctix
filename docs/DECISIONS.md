@@ -331,3 +331,159 @@ genuinely ours: provenance, constraints, agent notes, part refs, footprint verif
 count from 16 to 15. A one-time migration moves any existing `meta[].layoutOverride` into
 `manualEdits`, with a test that a v1 document loads correctly. `@syntrix/layout` reads
 `design.manualEdits` instead of the sidecar.
+
+---
+
+## ADR-0014 — One React, and it is React 19
+
+**Status:** accepted · 2026-09-14
+
+**Context.** The first attempt to run `@tscircuit/eval` in Node failed with _"A React
+Element from an older version of React was rendered."_ `@tscircuit/core` renders through
+`react-reconciler@0.32.0`, which is built for React 19; the JSX the sandbox evaluated was
+produced by React 18.
+
+The 18 did not come from us. `calculate-cell-boundaries@0.0.21`, a transitive dependency
+of `@tscircuit/core`, hard-depends on `react@18.3.1` — it uses React only for
+`lucide-react` in its debug graphics. pnpm hoisted that copy into
+`node_modules/.pnpm/node_modules/`, the hidden directory that every package inside
+`.pnpm/` resolves against, where it shadowed React for `@tscircuit/eval`. Adding React 19
+as a root devDependency did not help: the root `node_modules` is further up the
+resolution chain than the hidden hoist directory, so it is never reached.
+
+**Decision.** A `react`/`react-dom` override pinned to `19.3.0` in `pnpm-workspace.yaml`,
+and `apps/web` moved from React 18 to React 19 to match.
+
+**Why not keep the web app on 18.** Two reasons. tscircuit is the engine (principle 1)
+and it is a React 19 codebase, so pinning our side to 18 means permanently fighting its
+dependency tree. And `@tscircuit/runframe`, which M4 embeds for the PCB and 3D tabs, would
+reproduce exactly this dual-instance failure inside the browser bundle — where it is much
+harder to see than a stack trace in a test.
+
+**Consequences.** `@tscircuit/eval` runs under Node 24 and renders a two-component board
+in about 2s. The web app builds unchanged on React 19. `calculate-cell-boundaries` now
+gets a React it did not ask for; it uses React only for an optional debug UI we never
+render, so this is safe, and it is recorded here in case a future failure points back at
+it.
+
+---
+
+## ADR-0015 — TSX mode isolation: in-process, with a process boundary required for untrusted input
+
+**Status:** accepted · 2026-09-14 · resolves open question 2
+
+**Context.** `@tscircuit/eval` evaluates code in the calling process. v1 planned to hide
+that inside the worker container; v2 has no worker.
+
+**Decision.** `compileTsx` runs in-process and enforces what it can: CDN loading is
+disabled by default, so a model-authored `import` cannot pull an arbitrary npm package; a
+timeout (20s by default) bounds a runaway render; and the runner is killed on every path,
+including failure, because a live runner holds the render loop open and the process will
+not exit.
+
+**This is not a security boundary, and the code says so.** It is adequate for the trusted
+paths — a signed-in user's own design, and our own agent, whose TSX we can read back from
+the operation log. It is _not_ adequate for untrusted input: an anonymous MCP client, or a
+public deployment. Those must run `compileTsx` behind a process boundary with its own
+memory and CPU limits.
+
+**Revisit** at M8, when MCP exposes `generate_tsx_circuit` to external clients. The likely
+shape is a pooled child process, since the render stack's cold start is seconds and paying
+it per request would cost more than the isolation is worth.
+
+---
+
+## ADR-0016 — tscircuit's renderer and circuit-json's schema are not in lockstep
+
+**Status:** accepted · 2026-09-14
+
+**Context.** The first real TSX compile produced a document `circuit-json@0.0.491` — the
+latest published version — rejects. The cause is a single field:
+`pcb_component.display_offset_x` comes back from `@tscircuit/core` as a **number**, where
+the schema declares a **string**. One malformed field per placed component is enough to
+reject the element, and one rejected element was enough to fail the whole compile.
+
+**Decision.** `partitionConformant` handles two kinds of divergence, and nothing else:
+
+1. A field the element's own schema rejects is **stripped**, and the element kept. Only
+   removal, never coercion — nothing is invented to make a value fit. A required field
+   cannot be rescued this way, because removing it fails validation again, so this can
+   only ever fix an optional field the renderer spells differently.
+2. An element type the union does not know at all is **dropped whole**. Nothing hits this
+   today; it exists because a renderer that runs ahead of its schema once will do it
+   again, and failing every TSX compile until a dependency bump is not a reasonable
+   response to a new element type.
+
+Both are reported on `CompiledTsx.skew`, so a drop is visible rather than silent.
+Principle 2 is what forces this shape: the document is circuit-json validated by
+circuit-json's own schemas, so nothing the schema rejects may enter — not even something
+tscircuit itself produced. The alternatives were failing every compile over a display
+offset, or smuggling unvalidated data into the document.
+
+**A correction worth recording.** The first version of this ADR also listed
+`pcb_solder_paste` and `pcb_smtpad` as element types missing from the union. They are not.
+`any_circuit_element`'s 164 branches are not all `ZodObject`: some are unions, some
+discriminated unions, and some `ZodEffects` wrapping either. A type collector that only
+understood `ZodObject` reported a third of the spec as unknown. The collector now walks
+all four, and with it there is exactly one real divergence — `display_offset_x`.
+
+**Revisit** whenever `circuit-json` or `@tscircuit/core` is upgraded: check whether `skew`
+comes back empty, and delete the workaround if it does.
+
+---
+
+## ADR-0017 — A bad tscircuit selector does not throw
+
+**Status:** accepted · 2026-09-14
+
+Compiling a `<trace from=".R1 > .pin9">` against a two-pin resistor **succeeds**.
+tscircuit records the failure as a `source_trace_not_connected_error` element — _"Could
+not find port for selector '.R1 > .pin9'. Component '.R1 > ' found, but does not have pin
+'pin9'"_ — and renders the rest of the board.
+
+This is the most dangerous behaviour found in the TSX path so far. A caller that checks
+only whether `compileTsx` returned `ok` would merge a board whose wiring went nowhere, and
+the design would then fail ERC for reasons that look nothing like the actual mistake.
+
+**Decision.** `compileTsx` lifts every element whose type ends in `_error` or `_warning`
+into `CompiledTsx.diagnostics`, with a severity. The elements stay in the document — they
+are valid circuit-json and the UI draws them — but a caller no longer has to know that
+convention to discover the render went wrong. `hasErrors(diagnostics)` is the check.
+
+**Consequence.** The M6 agent loop must treat `hasErrors` as a failed tool call and feed
+the diagnostic messages back to the model, exactly as it does a validation error. They are
+already written in the right register: the message names the selector and says what the
+component does have instead.
+
+---
+
+## ADR-0018 — `@tscircuit/props` is the source of the manual-edits schema
+
+**Status:** accepted · 2026-09-14 · amends ADR-0013
+
+ADR-0013 said `manualEdits` mirrors tscircuit's manual-edits concept. Reading
+`@tscircuit/props@0.0.653` showed the concept is not merely mirrorable — it is exported.
+`manual_edits_file` is a zod 3 schema, ISC-licensed, and it is what tscircuit itself
+parses `manual-edits.json` with. `@syntrix/core` imports and re-exports it rather than
+declaring its own.
+
+**One correction to the plan.** The v2 specification said placements are keyed by
+`source_component_id`. They are not: the real schema keys by `selector`, and
+`@tscircuit/core` matches with
+`matchesSelector(component, selector) || component.props.name === selector`. That turns
+out to be the better design, and the reason to follow it exactly — ids are regenerated on
+every TSX re-evaluation and names are not, so keying by name is what lets a user's drag
+survive a recompile. `merge_circuit_json` with `replace_all` now keeps `manualEdits` for
+this reason, while `meta`, which is id-keyed, still cannot survive.
+
+The shape, verified at runtime:
+
+```ts
+{ pcb_placements?:       { selector, relative_to, center: { x, y } }[]
+  schematic_placements?: { selector, relative_to, center: { x, y } }[]
+  manual_trace_hints?:   { pcb_port_selector, offsets: Point[] }[] }
+```
+
+`relative_to` defaults to `"group_center"`, and `center` accepts SI strings (`"2mm"`
+parses to `2`). There is no rotation field, so rotation stays in `meta.rotationDeg` — it
+was always genuinely ours.
