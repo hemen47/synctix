@@ -10,7 +10,7 @@
 
 import { symbols as SYMBOL_LIBRARY, type SchSymbol } from "schematic-symbols"
 import type { AnyCircuitElement } from "circuit-json"
-import type { DrawPrimitive, LabelNode, PinNode, Point, Scene, SymbolNode, WireNode } from "./types"
+import type { DrawPrimitive, LabelNode, Point, Scene, SymbolNode, WireNode } from "./types"
 
 /**
  * ftype → the `schematic-symbols` family name.
