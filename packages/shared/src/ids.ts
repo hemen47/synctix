@@ -129,3 +129,67 @@ export const nextRefdes = (ftype: string, existingNames: Iterable<string>): stri
   while (used.has(n)) n += 1
   return `${prefix}${n}`
 }
+
+/**
+ * A factory that records what it generated, and one that plays it back.
+ *
+ * This is what makes event sourcing work. `apply` mints ids as it goes, so replaying an
+ * operation log with a fresh factory produces a design that is structurally identical and
+ * yet has different element ids — which orphans everything keyed by id (the `meta`
+ * sidecar), and invalidates any id a client is holding. Undo would silently break both.
+ *
+ * So the log records the ids each operation minted, and replay hands them back in the
+ * same order. Replay then reproduces the original design exactly rather than merely
+ * equivalently.
+ *
+ * `recordIds` returns the ids in generation order; feed them to `createReplayIdFactory`.
+ * If a replay asks for more ids than were recorded — which means the reducer changed
+ * since the entry was written — the factory falls through to fresh ones rather than
+ * throwing, so an engine upgrade degrades to "ids moved" instead of "design unopenable".
+ */
+export const createRecordingIdFactory = (
+  inner: IdFactory = createRandomIdFactory(),
+): IdFactory & { recorded(): string[] } => {
+  const recorded: string[] = []
+  return {
+    next(prefix) {
+      const id = inner.next(prefix)
+      recorded.push(id)
+      return id
+    },
+    reset() {
+      inner.reset()
+      recorded.length = 0
+    },
+    recorded: () => [...recorded],
+  }
+}
+
+export const createReplayIdFactory = (
+  ids: readonly string[],
+  fallback: IdFactory = createRandomIdFactory(),
+): IdFactory => {
+  let cursor = 0
+  return {
+    next(prefix) {
+      const recorded = ids[cursor]
+      cursor += 1
+      return recorded ?? fallback.next(prefix)
+    },
+    reset() {
+      cursor = 0
+      fallback.reset()
+    },
+  }
+}
+
+/** Run `work` with `factory` installed, restoring whatever was active before. */
+export const withIdFactory = <T>(factory: IdFactory, work: () => T): T => {
+  const previous = getIdFactory()
+  setIdFactory(factory)
+  try {
+    return work()
+  } finally {
+    setIdFactory(previous)
+  }
+}

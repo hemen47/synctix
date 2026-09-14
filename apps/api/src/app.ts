@@ -6,7 +6,11 @@
 import express, { type Express, type NextFunction, type Request, type Response } from "express"
 import cors from "cors"
 import { toProblemDetails, validationError } from "@syntrix/shared"
+import { t0Resolver } from "@syntrix/parts"
 import { createHealthHandler, livenessHandler } from "./health"
+import { createDesignsRouter } from "./designs"
+import { createPartsRouter } from "./parts"
+import { MemoryDesignStore, type DesignStore } from "./store"
 
 export interface AppOptions {
   version: string
@@ -16,6 +20,11 @@ export interface AppOptions {
   publicOrigin?: string
   /** Overridable so tests can drive the dependency probes deterministically. */
   env?: NodeJS.ProcessEnv
+  /**
+   * Where designs live. Defaults to the in-memory store, which is what a development
+   * stack with no MONGO_URL runs on — not a test double.
+   */
+  store?: DesignStore
 }
 
 export const createApp = (opts: AppOptions): Express => {
@@ -45,8 +54,10 @@ export const createApp = (opts: AppOptions): Express => {
 
   if (opts.apiKey) app.use("/api", requireApiKey(opts.apiKey))
 
-  // Feature routers (designs, operations, agent, parts, exports, simulate) mount here
-  // as the milestones land. M0 ships health only.
+  // Every feature router is mounted under /api, behind the api-key check above.
+  const store = opts.store ?? new MemoryDesignStore({ resolvePart: t0Resolver })
+  app.use("/api", createDesignsRouter(store))
+  app.use("/api", createPartsRouter())
 
   app.use(notFoundHandler)
   app.use(errorHandler)

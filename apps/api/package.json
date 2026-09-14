@@ -14,10 +14,12 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
-    "@syntrix/shared": "workspace:*",
     "@syntrix/core": "workspace:*",
-    "express": "^4.21.2",
+    "@syntrix/layout": "workspace:*",
+    "@syntrix/parts": "workspace:*",
+    "@syntrix/shared": "workspace:*",
     "cors": "^2.8.5",
+    "express": "^4.21.2",
     "pino": "^9.5.0",
     "pino-http": "^10.3.0",
     "zod": "3.24.1"

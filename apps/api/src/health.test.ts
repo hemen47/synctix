@@ -250,8 +250,8 @@ describe("API key auth", () => {
     )
     const app = createApp({ version: "0.1.0", startedAt: Date.now(), apiKey: "secret" })
 
-    // Auth passes, so this reaches the 404 handler rather than the 401 one.
-    await request(app).get("/api/designs").set("Authorization", "Bearer secret").expect(404)
+    // Auth passes, so this reaches the designs router rather than the 401 handler.
+    await request(app).get("/api/designs").set("Authorization", "Bearer secret").expect(200)
     vi.unstubAllGlobals()
   })
 })
