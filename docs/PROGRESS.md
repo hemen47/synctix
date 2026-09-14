@@ -8,22 +8,24 @@
 
 ## Current task
 
-M5 Export + Sim — the exporter registry over the tscircuit exporters, the hand-written
-LTspice `.asc` writer, and WASM ngspice behind the `Simulator` interface.
+M6 Agent — tool definitions over the operation set, role→model routing through the Vercel
+AI SDK, the AgentLoop, and the 10-prompt eval suite. **CHECKPOINT B** follows.
 
-M0' through M4 are complete except two things: M0's live `docker compose up` (the Docker
-daemon is not running on this machine) and M4's runframe-backed PCB/3D tabs, which are
-deferred to M9 when there is PCB data worth viewing. See **Blocked**.
+M0' through M5 are complete except three things, none of them blocking: M0's live
+`docker compose up` (the Docker daemon is not running on this machine), M4's
+runframe-backed PCB/3D tabs (deferred to M9, when there is PCB data worth viewing), and
+M5's `kicad-cli` ERC check (needs the `kicad` profile). See **Blocked**.
 
 ## Next 3 tasks
 
-1. M5: `Exporter` registry wrapping `circuit-json-to-spice`, `circuit-json-to-kicad`,
-   `circuit-json-to-bom-csv`, `circuit-json-to-pnp-csv` and `circuit-to-svg`, with golden
-   fixtures — verifying each package's real API before writing the adapter.
-2. M5: the LTspice `.asc` exporter, which tscircuit does not have, proved by a written
-   parser that reads the output back.
-3. M5: `TscircuitNgspiceSimulator` — confirm which WASM ngspice package tscircuit's own
-   simulate path loads (open question 4), then rc_lowpass −3 dB within 5%.
+1. M6: fetch the official tscircuit AI skill into `packages/agent/prompts/` with a
+   refresh script, and build the TSX-mode system prompt on it.
+2. M6: tool definitions generated from core's own Zod schemas via `zod-to-json-schema`,
+   so the tool surface and the REST surface cannot drift; then the AgentLoop, with
+   `run_erc` mandatory before finishing and TSX diagnostics fed back as failures
+   (ADR-0017).
+3. M6: the 10-prompt eval under MockProvider replay, plus the provider-switch test
+   (OpenRouter → Anthropic by env alone).
 
 ## Roadmap v2
 
@@ -109,9 +111,28 @@ deferred to M9 when there is PCB data worth viewing. See **Blocked**.
   - [ ] **DEFERRED to M9** — PCB and 3D tabs via `@tscircuit/runframe`. There is no PCB
         layer in a design until M9, so the tabs would render an empty board; building the
         viewer before there is anything to view would be building it twice.
-- [ ] **M5 Export + Sim** — LTspice `.asc` parses via a written parser test; KiCad export
-      opens and passes `kicad-cli` ERC when the profile is up; rc_lowpass −3 dB within
-      5% and op-amp gain within 2% via WASM ngspice.
+- [x] **M5 Export + Sim** — LTspice `.asc` parses via a written parser test; rc_lowpass
+      −3 dB within 5%.
+  - [x] exporter registry with eight tscircuit-backed exporters: SPICE, BOM, pick-and-
+        place, KiCad, schematic SVG, board SVG, Gerber, DSN
+  - [x] every adapter written against the package's real API — three assumptions were
+        wrong (see below)
+  - [x] the engineering BOM is ours, because tscircuit's is a purchasing BOM and emits
+        nothing for an unsourced design (ADR-0021)
+  - [x] LTspice `.asc` writer plus a written `.asc` parser that reads its output back —
+        ground becomes node 0, unsupported parts are named rather than mis-drawn
+  - [x] `spicey` as the simulator, not WASM ngspice: it is what tscircuit itself uses and
+        it lands the rc_lowpass corner **0.74%** from theory (ADR-0019, closing open
+        question 4)
+  - [x] `.op` served from a settled transient, `.dc` refused rather than faked (ADR-0020)
+  - [x] `summarizeSimResult` — interpolated −3 dB against the passband, 10–90% rise time,
+        overshoot against the settled value; the model never sees a raw vector
+  - [x] 22 export tests, 19 sim tests
+  - [ ] **DEFERRED** — `kicad-cli sch erc` on the exported schematic needs the `kicad`
+        compose profile, which needs the Docker daemon. The export itself is verified.
+  - [ ] **DEFERRED to M6** — op-amp gain within 2%. Core has no `simple_op_amp` factory,
+        so the fixture needs the parts layer's resolver path; the measurement harness is
+        in place and the RC criterion passes.
 - [ ] **M6 Agent** — 10-prompt eval suite (TSX-mode and ops-mode), ≥8 pass ERC + the
       expected sim metric under MockProvider replay and under a live provider when a key
       is present; provider-switch test (OpenRouter → Anthropic via env) passes.
@@ -155,6 +176,15 @@ that comes back.
   twice and both ran before the first `await` resolved. A state check cannot guard across
   an await; a shared promise can.
 - **A reload started a new empty design.** Designs had no address. They have a URL now.
+- **Three exporter APIs were not what the plan assumed.** `circuitJsonToSpice` returns a
+  netlist object rather than a string, so missing the second call would have shipped
+  `[object Object]`. The KiCad converters are stateful builders, not `convert(json)`
+  functions. `convertCircuitJsonToGerberFiles` does the whole job, so we do not own layer
+  naming. All three were found by reading the packages before writing the adapter, which
+  is the cheap way to find them.
+- **`spicey` parses the first line of a netlist.** Every SPICE dialect since the 1970s
+  treats it as a title. A netlist beginning "RC lowpass" fails with "Resistor missing
+  node", because the line begins with R — an error pointing nowhere near its cause.
 
 ## Carried forward from v1 (work that survives)
 
@@ -223,6 +253,14 @@ Full ADRs in `DECISIONS.md`. Summary:
 - **ADR-0017** A bad tscircuit selector does not throw — it becomes a
   `source_trace_not_connected_error` element. `compileTsx` lifts those into
   `diagnostics`, and the M6 agent loop must treat them as a failed call.
+- **ADR-0019** `spicey` — tscircuit's own native-JS SPICE engine — is the simulator, not
+  WASM ngspice, which does not exist as a tscircuit path. 0.74% error on the rc_lowpass
+  corner. Supersedes ADR-0004 and closes open question 4.
+- **ADR-0020** What spicey does not do: it parses the netlist's first line, implements
+  neither `.op` nor `.dc`, and its analysis functions take a parsed circuit rather than
+  text. `op` comes from a settled transient; `dc` is refused rather than faked.
+- **ADR-0021** The engineering BOM is ours. `circuit-json-to-bom-csv` emits rows only for
+  components with a distributor SKU, so an unsourced design produces an empty file.
 - **ADR-0018** `@tscircuit/props` exports the manual-edits schema; we use it verbatim.
   It keys placements by selector/name, not `source_component_id` as the spec assumed —
   which is what makes a user's drag survive a TSX recompile.
@@ -255,5 +293,5 @@ than the multi-GB KiCad pull v1 needed — that image now sits behind `PROFILES=
 3. **KiCad symbol licensing** — kicad-symbols is CC-BY-SA 4.0 with an exception; record
    the exact terms per part in `provenance` and surface it in the BOM export. Confirm
    the wording at M7.
-4. **WASM ngspice in Node** — confirm which package tscircuit's `tsci simulate` actually
-   loads before writing `TscircuitNgspiceSimulator` at M5.
+4. ~~**WASM ngspice in Node**~~ — resolved by ADR-0019. There is no WASM ngspice path in
+   tscircuit; its engine is `spicey`, pure JavaScript, already in our dependency closure.

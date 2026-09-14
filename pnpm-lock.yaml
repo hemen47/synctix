@@ -413,6 +413,9 @@ importers:
       circuit-json:
         specifier: 0.0.491
         version: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
+      spicey:
+        specifier: 0.0.14
+        version: 0.0.14(typescript@5.9.3)
       zod:
         specifier: 3.24.1
         version: 3.24.1

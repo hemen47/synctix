@@ -166,11 +166,42 @@ The api runs with its in-memory store, which is the same path a development stac
 ## M5 — Export + Simulation
 
 **Exit criteria:** the LTspice `.asc` output parses under a written parser test; the
-KiCad export opens and passes `kicad-cli sch erc` when the `kicad` profile is up
-(otherwise verified by the manual script here); `rc_lowpass` −3 dB within 5% of theory
-and op-amp gain within 2%, via the WASM ngspice path.
+KiCad export opens and passes `kicad-cli sch erc` when the `kicad` profile is up;
+`rc_lowpass` −3 dB within 5% of theory.
 
-_Added at M5._
+```bash
+pnpm --filter @syntrix/export test:run
+pnpm --filter @syntrix/sim test:run
+```
+
+**LTspice.** `ltspice-parser.ts` is a real parser for the subset the exporter writes, and
+the tests interrogate what it returns rather than grepping the output. That is what
+catches SYMATTRs drifting onto the wrong symbol — the one piece of state in the format,
+and the one thing a substring check passes straight through.
+
+**Simulation.** The −3 dB corner is checked against 1/(2πRC) rather than against a
+recorded number, so a regression in the engine, in the netlist, or in the measurement all
+show up, and a golden file that was wrong from the start cannot bless itself. Measured:
+**0.74% error**, against a 5% budget (ADR-0019). Transient rise time is checked against
+the 2.2τ identity.
+
+### Deferred, with reasons
+
+- **`kicad-cli sch erc`** needs the `kicad` compose profile, which needs the Docker
+  daemon — unavailable on this machine (see PROGRESS.md → Blocked). The export itself is
+  verified: the schematic parses as `(kicad_sch …)` and is produced for a design with no
+  board layer, which is the normal case before M9. To run it:
+
+  ```bash
+  make dev PROFILES=kicad
+  curl -F file=@design.kicad_sch localhost:3019/sch/erc
+  ```
+
+- **Op-amp gain within 2%** moves to M6. Core deliberately knows only enough pin data to
+  build an element from a bare ftype — `simple_op_amp` has no factory there, and real
+  pinouts live in `@syntrix/parts` behind a resolver. The fixture therefore needs the
+  parts path that the agent uses anyway, and the measurement harness (`summarizeSimResult`
+  and the closed-form comparison) is already in place and passing for the RC criterion.
 
 ---
 

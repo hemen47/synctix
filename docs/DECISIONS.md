@@ -487,3 +487,85 @@ The shape, verified at runtime:
 `relative_to` defaults to `"group_center"`, and `center` accepts SI strings (`"2mm"`
 parses to `2`). There is no rotation field, so rotation stays in `meta.rotationDeg` — it
 was always genuinely ours.
+
+---
+
+## ADR-0019 — `spicey` is the simulator, not WASM ngspice
+
+**Status:** accepted · 2026-09-15 · supersedes ADR-0004 · resolves open question 4
+
+**Context.** The v2 plan named "the WASM ngspice path used by `tsci simulate`". There is
+no such path. tscircuit's in-tree SPICE engine is **`spicey`** — its own description is
+"Run SPICE simulations in native javascript. An alternative to ngspice" — and it is
+already a dependency of `@tscircuit/core`, so it arrives with the engine rather than as a
+choice. (`spicets`, the similarly named package, is a netlist read/write toolkit and not a
+simulator at all.)
+
+**Decision.** `spicey` is the default `Simulator`. Measured on the rc_lowpass fixture it
+puts the −3 dB corner at 160.3 Hz against a theoretical 159.15 Hz — **0.74% error**,
+against M5's 5% budget. Being pure JavaScript, it is also one implementation for both the
+browser and the server rather than two, with no WASM to load before the first simulation
+and no binary to ship.
+
+`eecircuit-engine` (a real ngspice build, and ADR-0004's original choice) remains the
+escape hatch for what spicey does not cover, behind the same interface. spicey exports
+`eecEngineTranToVGraphs`, which suggests tscircuit expects exactly that pairing.
+
+**Consequence.** ADR-0004 is superseded: the decision it made was provisional and made
+before anything had been measured, and the thing it chose was not what tscircuit uses.
+
+---
+
+## ADR-0020 — What spicey does not do, and what we do about it
+
+**Status:** accepted · 2026-09-15
+
+Three behaviours differ from ngspice enough to be worth recording, all verified by running
+the library rather than by reading about it.
+
+**1. The first line is parsed, not treated as a title.** Every SPICE dialect since the
+1970s ignores line one; spicey does not. A netlist beginning `RC lowpass` fails with
+"Resistor missing node", because the line begins with `R` — an error that points nowhere
+near the cause. `withAnalysisCard` prefixes `*` to any netlist that lacks one.
+
+**2. `.op` and `.dc` are not implemented.** The parser lists `.op` under `skipped` and has
+no `.dc` handling; `analyses` only ever carries `ac` and `tran`.
+
+- **`op` is served from a settled transient.** For a linear circuit the final sample of a
+  transient _is_ the operating point, and it is what a bench measurement would give. A
+  1k/1k divider from 10 V reads 5.000 V. `SimResult.log` says how the number was obtained,
+  so nobody mistakes it for a native `.op`.
+- **`dc` is refused**, with a hint pointing at a ramped transient or at
+  `eecircuit-engine`. A sweep cannot be faked from a single operating point, and
+  `capabilities.analyses` omits it so a caller finds out before the run rather than during
+  it.
+
+**3. `simulateAC` and `simulateTRAN` take a parsed circuit; `simulate` takes text.**
+Passing a string to the first two throws on `ckt.analyses` — an error that reads like a
+bug in the netlist rather than in the call.
+
+**Revisit** when spicey gains `.op`/`.dc`: the transient substitution should then be
+deleted rather than kept as a fallback, since two paths to an operating point will
+eventually disagree.
+
+---
+
+## ADR-0021 — We write the engineering BOM ourselves
+
+**Status:** accepted · 2026-09-15
+
+`circuit-json-to-bom-csv` emits one row per component **that carries a distributor SKU**,
+and nothing for one that does not. Verified: a design of a 10k resistor and a 100nF
+capacitor produces an empty string.
+
+That is correct for a purchasing BOM and wrong for what an engineer needs. The parts list
+is wanted long before anyone has chosen a supplier — it is how you check that R3 is really
+meant to be 4.7k, and it is what goes into a design review.
+
+**Decision.** `@syntrix/export`'s BOM exporter writes the engineering BOM itself — refdes,
+value as the author typed it, type, footprint, and **footprint verification** — and merges
+tscircuit's supplier columns in when there are any.
+
+This is the "build only what tscircuit lacks" line (principle 1) falling in its usual
+place: not a whole format, a missing column. Wrapping the package and shipping an empty
+file would have been more faithful to the letter of the principle and useless.
