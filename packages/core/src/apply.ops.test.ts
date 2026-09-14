@@ -153,6 +153,55 @@ describe("disconnect from a net", () => {
     ).toBe("NOT_CONNECTED")
   })
 
+  it("drops port-to-net traces when their only component is removed", () => {
+    // Regression: these traces used to survive with an empty port list, because the
+    // pruning rule only dropped a trace when it had no *nets* — leaving traces in the
+    // document that connected nothing.
+    const design = build(
+      {
+        type: "add_component",
+        ftype: "simple_capacitor",
+        name: "C1",
+        props: { capacitance: "1uF" },
+      },
+      { type: "connect", a: { component: "C1", pin: 1 }, b: { net: "VOUT" } },
+      { type: "connect", a: { component: "C1", pin: 2 }, b: { net: "GND" } },
+    )
+    expect(buildIndex(design.circuit).traces.size).toBe(2)
+
+    const after = apply(design, { type: "remove_component", component: "C1" })
+    expect(after.ok).toBe(true)
+    if (after.ok) {
+      const view = buildIndex(after.value.circuit)
+      expect(view.traces.size).toBe(0)
+      // The nets themselves survive — they may still be used elsewhere.
+      expect(view.netsByName.size).toBe(2)
+    }
+  })
+
+  it("keeps a port-to-net trace whose port belongs to a surviving component", () => {
+    const design = build(
+      {
+        type: "add_component",
+        ftype: "simple_capacitor",
+        name: "C1",
+        props: { capacitance: "1uF" },
+      },
+      { type: "add_component", ftype: "simple_resistor", name: "R1", props: { resistance: "1k" } },
+      { type: "connect", a: { component: "C1", pin: 1 }, b: { net: "VOUT" } },
+      { type: "connect", a: { component: "R1", pin: 1 }, b: { net: "VOUT" } },
+    )
+
+    const after = apply(design, { type: "remove_component", component: "C1" })
+    expect(after.ok).toBe(true)
+    if (after.ok) {
+      const view = buildIndex(after.value.circuit)
+      // R1's connection to VOUT must survive C1's removal.
+      expect(view.traces.size).toBe(1)
+      expect([...view.traces.values()][0]?.connected_source_port_ids).toHaveLength(1)
+    }
+  })
+
   it("reports an unknown component on the far side", () => {
     expect(
       fail(wired(), {

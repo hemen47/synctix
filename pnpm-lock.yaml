@@ -11,6 +11,15 @@ importers:
       '@eslint/js':
         specifier: ^9.39.5
         version: 9.39.5
+      '@syntrix/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@syntrix/parts':
+        specifier: workspace:*
+        version: link:packages/parts
+      '@syntrix/shared':
+        specifier: workspace:*
+        version: link:packages/shared
       '@tscircuit/copper-pour-solver':
         specifier: ^0.0.54
         version: 0.0.54(typescript@5.9.3)
@@ -68,6 +77,9 @@ importers:
       spicey:
         specifier: ^0.0.14
         version: 0.0.14(typescript@5.9.3)
+      tsx:
+        specifier: ^4.23.13
+        version: 4.23.13
       turbo:
         specifier: ^2.10.12
         version: 2.10.12

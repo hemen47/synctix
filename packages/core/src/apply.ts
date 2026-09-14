@@ -222,10 +222,16 @@ const reduce = (
           const remaining = (element.connected_source_port_ids ?? []).filter(
             (id) => !portIds.has(id),
           )
-          // A trace with fewer than two endpoints and no net connects nothing.
-          if (remaining.length < 2 && (element.connected_source_net_ids ?? []).length === 0) {
-            continue
-          }
+          const nets = element.connected_source_net_ids ?? []
+
+          // A trace is only meaningful while it still joins two things: two ports, or a
+          // port and a net. Once the removed component's ports are gone it may join
+          // nothing at all, and a trace with no ports left is junk in the document even
+          // when it still names a net.
+          const stillConnectsSomething =
+            remaining.length >= 2 || (remaining.length >= 1 && nets.length >= 1)
+          if (!stillConnectsSomething) continue
+
           circuit.push({ ...element, connected_source_port_ids: remaining })
           continue
         }

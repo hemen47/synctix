@@ -16,10 +16,14 @@
     "typecheck": "turbo run typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yaml,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,yaml,yml}\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "demo": "tsx scripts/demo-engine.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@syntrix/core": "workspace:*",
+    "@syntrix/parts": "workspace:*",
+    "@syntrix/shared": "workspace:*",
     "@tscircuit/copper-pour-solver": "^0.0.54",
     "@tscircuit/eval": "0.0.1402",
     "@tscircuit/infer-cable-insertion-point": "^0.0.4",
@@ -39,6 +43,7 @@
     "minicssgrid": "^0.0.9",
     "prettier": "^3.4.2",
     "spicey": "^0.0.14",
+    "tsx": "^4.23.13",
     "turbo": "^2.10.12",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.70.0",
