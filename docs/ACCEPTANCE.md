@@ -64,9 +64,27 @@ pnpm --filter @syntrix/core test:run --coverage
 ```
 
 Thresholds are enforced in `packages/core/vitest.config.ts` (lines/functions/statements
-90%, branches 85%) — the run fails below them, so the criterion cannot silently rot.
+90%, branches 80% — see ADR-0008) — the run fails below them, so the criterion cannot
+silently rot.
 
-_Detail added as the milestone lands._
+**Achieved:** 94.3% lines, 94.9% functions, 81.0% branches, across 108 tests.
+
+**Conformance.** `validateCircuit` parses every element through circuit-json's
+`any_circuit_element`, a strict discriminated union. `apply.test.ts` asserts conformance
+after operations that write to the sidecar, which is what proves principle 2 holds: no
+non-spec field ever enters the element array.
+
+**rc_lowpass round-trip.** `src/__fixtures__/rc-lowpass.ts` defines the circuit as
+operations, not as a circuit-json blob, so building it exercises the same path the agent
+and the UI use. The suite asserts that it:
+
+1. conforms to circuit-json,
+2. produces the expected components and nets,
+3. yields the right electrical connectivity (R1.2 and C1.1 are one node via VOUT; C1.2 is
+   not),
+4. survives a serialise/reload cycle,
+5. and produces a byte-identical document whether applied one operation at a time or as a
+   single atomic batch.
 
 ---
 

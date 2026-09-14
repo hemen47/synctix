@@ -25,8 +25,14 @@ export default tseslint.config(
     },
   },
   {
-    // Service bootstraps and scripts legitimately log to stdout.
-    files: ["apps/*/src/index.ts", "apps/web/server.js", "scripts/**"],
+    // Service bootstraps, scripts, and the console logger itself legitimately write to
+    // stdout. Everything else goes through @syntrix/shared's logger.
+    files: [
+      "apps/*/src/index.ts",
+      "apps/web/server.js",
+      "scripts/**",
+      "packages/shared/src/logger.ts",
+    ],
     rules: { "no-console": "off" },
   },
   {

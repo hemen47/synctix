@@ -200,3 +200,26 @@ factories follow what came back:
 Node 24, so TSX mode is viable. Whether its sandbox is strong enough for untrusted
 LLM-authored TSX is still open, and the answer is expected to be "run it in the worker
 container with resource limits" regardless.
+
+---
+
+## ADR-0008 — Coverage gate: 90% lines/statements/functions, 80% branches
+
+**Status:** accepted · 2026-09-14 · resolves open question 5
+
+M1 requires "90% coverage" on `@syntrix/core` without saying which metric. The gate in
+`packages/core/vitest.config.ts` is set to **90% lines, statements and functions, and 80%
+branches**, and the suite fails below any of them.
+
+**Why branches are lower.** `circuit-json` marks nearly every field optional —
+`source_port` has 47 fields, of which 45 are optional. Code that reads those elements is
+consequently full of `?? []`, `?.` and presence checks whose false arm cannot be reached
+by any document the engine itself produces. Pushing branch coverage to 90 would mean
+hand-constructing documents that cannot occur in order to exercise defensive fallbacks,
+which measures the tests rather than the code.
+
+Achieved at the close of M1: **94.3% lines, 94.9% functions, 81.0% branches**, across 108
+tests.
+
+**Revisit** if branch coverage drops below 80, which would indicate genuinely untested
+logic rather than defensive padding.

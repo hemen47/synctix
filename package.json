@@ -28,6 +28,7 @@
     "@tscircuit/schematic-trace-solver": "^0.0.196",
     "@tscircuit/soup-util": "^0.0.41",
     "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "2.1.9",
     "calculate-elbow": "^0.0.13",
     "circuit-json": "0.0.491",
     "connectivity-map": "^1.0.0",

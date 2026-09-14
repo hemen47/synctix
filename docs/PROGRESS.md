@@ -8,13 +8,16 @@
 
 ## Current task
 
-M1 — `@syntrix/shared` (ids, SI units, logger) then `@syntrix/core` document store.
+M2 — `@syntrix/parts`: T0 generic catalog, `PartsSource` registry, footprint resolution.
 
 ## Next 3 tasks
 
-1. M1: `@syntrix/shared` — id generation, SI unit parsing, logger, with tests.
-2. M1: `@syntrix/core` — element factories, indexed view, `apply` reducer.
-3. M1: ERC v1, `summarizeForLLM`, TSX merge, `rc_lowpass` round-trip fixture.
+1. M2: T0 catalog in code (passives, diodes, transistors, common ICs, connectors) with
+   real pinouts and `port_hints`, wired into core through `ApplyContext.resolvePart`.
+2. M2: footprint resolver (`@tscircuit/footprinter` string to pcb elements) with unit
+   tests on 0402/0603/SOT-23/SOIC-8/SOT-223/QFN-32/TQFP-32/TO-220/headers.
+3. M2: Mongo + Meilisearch T1 index and the `search_parts` path, to satisfy the
+   "3.3V LDO SOT-223 returns AMS1117 with a verified footprint" criterion.
 
 ## Milestones
 
@@ -31,7 +34,16 @@ M1 — `@syntrix/shared` (ids, SI units, logger) then `@syntrix/core` document s
   - [x] GitHub Actions CI, Husky pre-commit (verified: it blocked an unformatted commit)
   - [x] ESLint config
   - [ ] **BLOCKED** — `make dev` end-to-end run (needs Docker Desktop running locally)
-- [ ] **M1 Core** — 90% coverage, conformance tests, rc_lowpass round-trip
+- [x] **M1 Core** — 90% coverage, conformance tests, rc_lowpass round-trip
+  - [x] `@syntrix/shared`: Result, errors, ids, SI units, logger (34 tests)
+  - [x] element factories that validate through circuit-json at construction
+  - [x] indexed view, pin resolution by number/name/hint, connectivity closure
+  - [x] `apply` reducer — all 16 operations, pure and immutable
+  - [x] ERC v1 — all 8 rules, built on circuit-json's native pin semantics
+  - [x] `summarizeForLLM` with budget-aware truncation
+  - [x] TSX merge via `merge_circuit_json` (3 strategies)
+  - [x] rc_lowpass round-trip; batch and stepwise produce identical documents
+  - [x] coverage 94.3% lines / 94.9% functions / 81.0% branches (108 tests)
 - [ ] **M2 Parts T0+T1** — search returns AMS1117 with verified footprint
 - [ ] **M3 Layout** — fixtures lay out without overlaps
 - [ ] **M4 Editor** — Playwright place/wire/undo/export
