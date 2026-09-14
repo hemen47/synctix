@@ -5,14 +5,25 @@
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
-  "exports": { ".": { "types": "./src/index.ts", "default": "./src/index.ts" } },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "test": "vitest --passWithNoTests",
+    "test:run": "vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src --max-warnings 0"
   },
-  "dependencies": { "@syntrix/shared": "workspace:*", "@syntrix/core": "workspace:*", "circuit-json": "0.0.491", "zod": "3.24.1" },
+  "dependencies": {
+    "@syntrix/shared": "workspace:*",
+    "@syntrix/core": "workspace:*",
+    "circuit-json": "0.0.491",
+    "zod": "3.24.1"
+  },
   "devDependencies": {
     "typescript": "^5.7.2",
     "vitest": "^2.1.8",

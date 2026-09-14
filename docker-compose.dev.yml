@@ -1,0 +1,112 @@
+# Development overlay:  docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Publishes every service port on the host for direct debugging, mounts the source tree
+# for hot reload, and relaxes Meilisearch into development mode.
+
+name: syntrix
+
+services:
+  proxy:
+    ports:
+      - "${PUBLIC_PORT:-3015}:3015"
+
+  web:
+    build:
+      target: dev
+    command: ["pnpm", "--filter", "@syntrix/web", "dev", "--host", "0.0.0.0", "--port", "3016"]
+    environment:
+      NODE_ENV: development
+    ports:
+      - "${WEB_PORT:-3016}:3016"
+    volumes:
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+      # Anonymous volumes keep container-installed node_modules from being shadowed by
+      # the host mount — the host tree has Windows/linux-incompatible binaries.
+      - /app/node_modules
+      - /app/apps/web/node_modules
+
+  api:
+    build:
+      target: dev
+    command: ["pnpm", "--filter", "@syntrix/api", "dev"]
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+    ports:
+      - "${API_PORT:-3017}:3017"
+    volumes:
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      - ./config:/app/config:ro
+      - /app/node_modules
+      - /app/apps/api/node_modules
+
+  mcp:
+    build:
+      target: dev
+    command: ["pnpm", "--filter", "@syntrix/mcp", "dev"]
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+    ports:
+      - "${MCP_PORT:-3018}:3018"
+    volumes:
+      - ./apps/mcp:/app/apps/mcp
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/mcp/node_modules
+
+  worker:
+    build:
+      target: dev
+    command: ["pnpm", "--filter", "@syntrix/worker", "dev"]
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+    volumes:
+      - ./apps/worker:/app/apps/worker
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/worker/node_modules
+
+  kicad:
+    ports:
+      - "${KICAD_PORT:-3019}:3019"
+    volumes:
+      - ./services/kicad/app:/app:ro
+
+  sim:
+    ports:
+      - "${SIM_PORT:-3020}:3020"
+    volumes:
+      - ./services/sim/app:/app:ro
+
+  pytools:
+    ports:
+      - "${PYTOOLS_PORT:-3022}:3022"
+    volumes:
+      - ./services/pytools/app:/app:ro
+
+  freerouting:
+    ports:
+      - "${FREEROUTING_PORT:-3021}:3021"
+
+  mongo:
+    ports:
+      - "27017:27017"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  minio:
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  meilisearch:
+    environment:
+      MEILI_ENV: development
+    ports:
+      - "7700:7700"

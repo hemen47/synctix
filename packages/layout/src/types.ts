@@ -47,10 +47,7 @@ export interface LayoutResult {
 export interface LayoutStrategy {
   id: string
   label: string
-  layout(
-    design: Design,
-    options?: LayoutOptions,
-  ): Promise<Result<LayoutResult, ValidationError[]>>
+  layout(design: Design, options?: LayoutOptions): Promise<Result<LayoutResult, ValidationError[]>>
 }
 
 export interface LayoutStrategyRegistry {

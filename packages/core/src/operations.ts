@@ -9,14 +9,14 @@
 import { z } from "zod"
 
 export const portRefSchema = z.object({
-  component: z.string().min(1).describe("Component refdes, e.g. \"U1\", or its source_component_id"),
+  component: z.string().min(1).describe('Component refdes, e.g. "U1", or its source_component_id'),
   pin: z
     .union([z.string(), z.number()])
-    .describe("Pin number, pin name, or a known alternate name such as \"VCC\""),
+    .describe('Pin number, pin name, or a known alternate name such as "VCC"'),
 })
 
 export const netRefSchema = z.object({
-  net: z.string().min(1).describe("Net name, e.g. \"GND\" or \"VOUT\""),
+  net: z.string().min(1).describe('Net name, e.g. "GND" or "VOUT"'),
 })
 
 export const connectionEndpointSchema = z.union([portRefSchema, netRefSchema])

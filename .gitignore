@@ -20,3 +20,6 @@ artifacts/
 .pnpm-store/
 vendor/kicad-symbols/
 vendor/kicad-footprints/
+
+# Vite build output for the web app
+apps/web/dist/

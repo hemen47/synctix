@@ -1,7 +1,13 @@
 packages:
   - "packages/*"
   - "apps/*"
+# esbuild ships prebuilt platform binaries; its install script is required for
+# vite/vitest to run at all.
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true
+  # An optional native accelerator for msgpackr (a bullmq dependency). The pure-JS
+  # path is used when it is absent, so we skip the native build.
+  msgpackr-extract: false
 minimumReleaseAgeExclude:
   - circuit-json@0.0.491
+  - bullmq@6.3.6

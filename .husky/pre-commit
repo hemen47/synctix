@@ -1,0 +1,8 @@
+# Fast checks only — a slow hook gets bypassed, and a bypassed hook protects nothing.
+# The full suite runs in CI.
+pnpm format:check || {
+  echo ""
+  echo "Formatting check failed. Run: pnpm format"
+  exit 1
+}
+pnpm -r typecheck

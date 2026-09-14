@@ -26,7 +26,7 @@ local dev stay within one compatible range.
 artifact showed two things:
 
 - `dist/index.mjs` imports `zod` as an **external** module, but `zod` appears in neither
-  `dependencies` nor `peerDependencies` — it is an *undeclared peer*. Importing
+  `dependencies` nor `peerDependencies` — it is an _undeclared peer_. Importing
   `circuit-json` without zod installed fails with `ERR_MODULE_NOT_FOUND`.
 - `dist/index.d.mts` begins `import { z } from 'zod'` and the package was built against
   `zod@3`.
@@ -55,20 +55,20 @@ Verified empirically rather than from memory. These are the load-bearing facts:
   is rejected. This is what makes the §4 conformance requirement enforceable: every
   element core produces is parsed through it.
 - **SI strings are parsed by the schema itself.** `source_simple_resistor.parse({...,
-  resistance: "10k"})` yields `resistance: 10000` (a number). Our own SI parser in
-  `@syntrix/shared` therefore exists for *our* props (spacing, board size, tolerances)
+resistance: "10k"})` yields `resistance: 10000` (a number). Our own SI parser in
+  `@syntrix/shared` therefore exists for _our_ props (spacing, board size, tolerances)
   and for pre-validation error messages — it must not double-convert values that
   circuit-json already normalises.
 - `source_component` requires `{ type, source_component_id, name }` and carries `ftype`
   as the discriminator into the `source_simple_*` refinements.
 - `source_port` requires `{ type, source_port_id, source_component_id, name,
-  pin_number }`.
+pin_number }`.
 - `source_net` requires `{ type, source_net_id, name, member_source_group_ids }` — the
   last is mandatory (use `[]`).
 - `source_trace` requires `{ type, source_trace_id, connected_source_port_ids,
-  connected_source_net_ids }` — both arrays mandatory.
+connected_source_net_ids }` — both arrays mandatory.
 - `schematic_component` requires `{ type, schematic_component_id, source_component_id,
-  center, size }` and defaults `is_box_with_pins: true`.
+center, size }` and defaults `is_box_with_pins: true`.
 - 28 `ftype` values exist (`simple_resistor`, `simple_capacitor`, `simple_chip`,
   `simple_op_amp`, `simple_mosfet`, `simple_ground`, `simple_power_source`, …). The parts
   layer maps every `PartDefinition` onto one of these.

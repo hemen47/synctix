@@ -74,5 +74,4 @@ export interface NetRef {
 export const isPortRef = (r: PortRef | NetRef): r is PortRef =>
   typeof (r as PortRef).component === "string"
 
-export const isNetRef = (r: PortRef | NetRef): r is NetRef =>
-  typeof (r as NetRef).net === "string"
+export const isNetRef = (r: PortRef | NetRef): r is NetRef => typeof (r as NetRef).net === "string"

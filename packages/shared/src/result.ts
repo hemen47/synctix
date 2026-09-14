@@ -20,10 +20,8 @@ export const mapResult = <T, U, E>(r: Result<T, E>, fn: (value: T) => U): Result
   r.ok ? ok(fn(r.value)) : r
 
 /** Chain a fallible step. The canonical way to sequence operations. */
-export const andThen = <T, U, E>(
-  r: Result<T, E>,
-  fn: (value: T) => Result<U, E>,
-): Result<U, E> => (r.ok ? fn(r.value) : r)
+export const andThen = <T, U, E>(r: Result<T, E>, fn: (value: T) => Result<U, E>): Result<U, E> =>
+  r.ok ? fn(r.value) : r
 
 /** Map the error value, passing successes through untouched. */
 export const mapErr = <T, E, F>(r: Result<T, E>, fn: (error: E) => F): Result<T, F> =>

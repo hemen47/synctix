@@ -34,9 +34,9 @@ not a side door.
 ```ts
 type Design = {
   id: string
-  version: number                  // optimistic concurrency
-  circuit: AnyCircuitElement[]     // spec-conformant circuit-json, flat
-  meta: Record<string, MetaEntry>  // sidecar, keyed by element id
+  version: number // optimistic concurrency
+  circuit: AnyCircuitElement[] // spec-conformant circuit-json, flat
+  meta: Record<string, MetaEntry> // sidecar, keyed by element id
 }
 ```
 
@@ -87,17 +87,17 @@ traceable to the operation, and the agent turn, that produced it.
 
 ## 5. Package map
 
-| Package | Responsibility |
-|---|---|
-| `@syntrix/shared` | `Result`, id generation, SI unit parsing, logger, error taxonomy |
-| `@syntrix/core` | document store, indexed views, Operations, reducer, undo/redo, ERC, `summarizeForLLM`, TSX merge |
-| `@syntrix/parts` | `PartDefinition`, T0 generic catalog, `PartsSource` registry, footprint resolution, pin mapping |
-| `@syntrix/layout` | `LayoutStrategy`, `ElkLayoutStrategy`, schematic conventions, override merge |
-| `@syntrix/export` | exporter registry: spice, ltspice-asc, kicad, svg, bom, pnp, gerber, dsn |
-| `@syntrix/sim` | `Simulator` interface, ngspice WASM and remote, netlist builder, result summarizer |
-| `@syntrix/agent` | tool definitions, role-to-model routing, `AgentLoop`, prompts |
-| `@syntrix/pcb` | board model, placement strategy, routing via Freerouting (M10) |
-| `@syntrix/ui-canvas` | framework-agnostic SVG scene graph and hit testing |
+| Package              | Responsibility                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------ |
+| `@syntrix/shared`    | `Result`, id generation, SI unit parsing, logger, error taxonomy                                 |
+| `@syntrix/core`      | document store, indexed views, Operations, reducer, undo/redo, ERC, `summarizeForLLM`, TSX merge |
+| `@syntrix/parts`     | `PartDefinition`, T0 generic catalog, `PartsSource` registry, footprint resolution, pin mapping  |
+| `@syntrix/layout`    | `LayoutStrategy`, `ElkLayoutStrategy`, schematic conventions, override merge                     |
+| `@syntrix/export`    | exporter registry: spice, ltspice-asc, kicad, svg, bom, pnp, gerber, dsn                         |
+| `@syntrix/sim`       | `Simulator` interface, ngspice WASM and remote, netlist builder, result summarizer               |
+| `@syntrix/agent`     | tool definitions, role-to-model routing, `AgentLoop`, prompts                                    |
+| `@syntrix/pcb`       | board model, placement strategy, routing via Freerouting (M10)                                   |
+| `@syntrix/ui-canvas` | framework-agnostic SVG scene graph and hit testing                                               |
 
 Apps: `web` (Vite/React), `api` (Express), `mcp` (MCP server), `worker` (BullMQ).
 Services: `kicad`, `sim`, `pytools` (Dockerised FastAPI wrappers around native tools).
@@ -113,7 +113,10 @@ at app startup.
 
 ```ts
 interface Exporter {
-  id: string; label: string; ext: string; mime: string
+  id: string
+  label: string
+  ext: string
+  mime: string
   export(design: Design): Promise<Artifact[]>
 }
 interface Simulator {

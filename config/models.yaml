@@ -1,0 +1,70 @@
+# Role to model routing.
+#
+# Switching provider is an edit to this file plus the matching API key in the
+# environment — no code changes (principle 7). All access goes through the Vercel AI
+# SDK, so every provider below presents the same interface to @syntrix/agent.
+#
+# Resolution order for a role: SYNTRIX_MODEL_<ROLE> env var, then this file, then
+# `defaults`.
+
+defaults:
+  provider: openrouter
+  temperature: 0.2
+  maxTokens: 8192
+
+roles:
+  # Decomposes a request into a plan. Gets the heaviest model: a bad plan wastes every
+  # downstream call.
+  planner:
+    provider: openrouter
+    model: anthropic/claude-opus-4.5
+    temperature: 0.3
+    maxTokens: 8192
+
+  # Runs the tool loop. High call volume, so this is where model cost actually lands.
+  executor:
+    provider: openrouter
+    model: anthropic/claude-sonnet-4.5
+    temperature: 0.1
+    maxTokens: 8192
+
+  # Reviews ERC and simulation results against the original request.
+  reviewer:
+    provider: openrouter
+    model: anthropic/claude-sonnet-4.5
+    temperature: 0.0
+    maxTokens: 4096
+
+  # Embeddings for parts search and design similarity.
+  embedder:
+    provider: openai
+    model: text-embedding-3-small
+
+# Alternative provider blocks, selected by setting a role's `provider`. Each entry names
+# the env var that must be present; a provider whose key is missing reports as
+# unavailable rather than throwing at call time.
+providers:
+  openrouter:
+    package: "@openrouter/ai-sdk-provider"
+    apiKeyEnv: OPENROUTER_API_KEY
+    baseUrlEnv: OPENROUTER_BASE_URL
+  anthropic:
+    package: "@ai-sdk/anthropic"
+    apiKeyEnv: ANTHROPIC_API_KEY
+  openai:
+    package: "@ai-sdk/openai"
+    apiKeyEnv: OPENAI_API_KEY
+  google:
+    package: "@ai-sdk/google"
+    apiKeyEnv: GOOGLE_GENERATIVE_AI_API_KEY
+  ollama:
+    package: "ollama-ai-provider"
+    # Local models need no key; the base URL is the only setting that matters.
+    baseUrlEnv: OLLAMA_BASE_URL
+    defaultBaseUrl: http://localhost:11434/api
+
+# Hard ceilings enforced by AgentLoop regardless of model or role.
+limits:
+  maxIterations: 24
+  maxToolCallsPerIteration: 8
+  maxCostUsdPerRun: 2.00
