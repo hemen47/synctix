@@ -1,0 +1,30 @@
+{
+  "name": "syntrix",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "test:run": "turbo run test:run",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,yaml,yml}\"",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "circuit-json": "0.0.491",
+    "prettier": "^3.4.2",
+    "turbo": "^2.10.12",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "zod": "3.24.1"
+  }
+}
