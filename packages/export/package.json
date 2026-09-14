@@ -19,14 +19,23 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
-    "@syntrix/shared": "workspace:*",
     "@syntrix/core": "workspace:*",
+    "@syntrix/shared": "workspace:*",
     "circuit-json": "0.0.491",
+    "circuit-json-to-bom-csv": "0.0.17",
+    "circuit-json-to-gerber": "0.0.106",
+    "circuit-json-to-kicad": "0.0.212",
+    "circuit-json-to-pnp-csv": "0.0.13",
+    "circuit-json-to-spice": "0.0.46",
+    "circuit-to-svg": "0.0.416",
+    "dsn-converter": "0.0.92",
     "zod": "3.24.1"
   },
   "devDependencies": {
+    "@syntrix/layout": "workspace:*",
+    "@syntrix/parts": "workspace:*",
+    "@types/node": "^22.10.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8",
-    "@types/node": "^22.10.2"
+    "vitest": "^2.1.8"
   }
 }
