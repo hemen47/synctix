@@ -45,6 +45,54 @@ const findOverlaps = (result: LayoutResult): Array<[number, number]> => {
   return found
 }
 
+/** A component's laid-out centre, found by name rather than by id. */
+const componentCenter = (
+  result: LayoutResult,
+  design: Design,
+  name: string,
+): { x: number; y: number } => {
+  const source = design.circuit.find(
+    (e) => e.type === "source_component" && (e as unknown as { name: string }).name === name,
+  ) as unknown as { source_component_id: string } | undefined
+  if (!source) throw new Error(`no component named ${name}`)
+
+  const placed = result.elements.find(
+    (e) =>
+      e.type === "schematic_component" &&
+      (e as unknown as { source_component_id: string }).source_component_id ===
+        source.source_component_id,
+  ) as unknown as Box | undefined
+  if (!placed) throw new Error(`${name} was not laid out`)
+  return placed.center
+}
+
+/** Name → position and size, ordered by name, for a snapshot that reads as a drawing. */
+const placementSnapshot = (result: LayoutResult, design: Design): Record<string, string> => {
+  const names = new Map<string, string>()
+  for (const element of design.circuit) {
+    if (element.type === "source_component") {
+      const record = element as unknown as { source_component_id: string; name: string }
+      names.set(record.source_component_id, record.name)
+    }
+  }
+
+  const rows: Array<[string, string]> = []
+  for (const element of result.elements) {
+    if (element.type !== "schematic_component") continue
+    const record = element as unknown as Box & { source_component_id: string }
+    const name = names.get(record.source_component_id) ?? record.source_component_id
+    rows.push([
+      name,
+      `x=${round(record.center.x)} y=${round(record.center.y)} ` +
+        `w=${round(record.size.width)} h=${round(record.size.height)}`,
+    ])
+  }
+
+  return Object.fromEntries(rows.sort(([a], [b]) => a.localeCompare(b)))
+}
+
+const round = (n: number): string => (Math.round(n * 100) / 100).toFixed(2)
+
 // ---------------------------------------------------------------- fixtures
 
 const rcLowpass = (): Design =>
@@ -308,6 +356,99 @@ describe("manual overrides win", () => {
     // ELK is told the position is fixed; layout must not move a symbol a human placed.
     expect(placed.center.x).toBeCloseTo(50.8 + placed.size.width / 2, 0)
   })
+})
+
+describe("manual placement survives a relayout", () => {
+  it("does not move a placed component when new components are added around it", async () => {
+    // The failure this guards against is the one that makes a graphical editor unusable:
+    // you drag a symbol where you want it, add one more part, and the whole drawing
+    // rearranges itself.
+    let design = regulator()
+    const placed = applyAll(
+      design,
+      [
+        {
+          type: "move_component",
+          component: "C2",
+          center: { x: 50.8, y: 25.4 },
+          layer: "schematic",
+        },
+      ],
+      ctx,
+    )
+    if (!placed.ok) throw new Error("setup failed")
+    design = placed.value
+
+    const before = componentCenter(await run(design), design, "C2")
+
+    const grown = applyAll(
+      design,
+      [
+        {
+          type: "add_component",
+          partRef: "t0:capacitor",
+          name: "C9",
+          props: { capacitance: "1uF" },
+        },
+        {
+          type: "add_component",
+          partRef: "t0:resistor",
+          name: "R9",
+          props: { resistance: "100k" },
+        },
+        { type: "connect", a: { component: "C9", pin: 1 }, b: { component: "R9", pin: 1 } },
+      ],
+      ctx,
+    )
+    if (!grown.ok) throw new Error("growth failed")
+
+    const after = componentCenter(await run(grown.value), grown.value, "C2")
+
+    expect(after.x).toBeCloseTo(before.x, 3)
+    expect(after.y).toBeCloseTo(before.y, 3)
+  })
+
+  it("clear_placement hands the component back to the layout engine", async () => {
+    let design = regulator()
+    const placed = applyAll(
+      design,
+      [
+        {
+          type: "move_component",
+          component: "C2",
+          center: { x: 101.6, y: 76.2 },
+          layer: "schematic",
+        },
+      ],
+      ctx,
+    )
+    if (!placed.ok) throw new Error("setup failed")
+    design = placed.value
+    const pinned = componentCenter(await run(design), design, "C2")
+
+    const released = applyAll(
+      design,
+      [{ type: "clear_placement", component: "C2", layer: "schematic" }],
+      ctx,
+    )
+    if (!released.ok) throw new Error("release failed")
+    const free = componentCenter(await run(released.value), released.value, "C2")
+
+    // Far away from where ELK would ever put it, so "it moved" is unambiguous.
+    expect(Math.hypot(free.x - pinned.x, free.y - pinned.y)).toBeGreaterThan(10)
+  })
+})
+
+describe("snapshots", () => {
+  // Geometry, rounded to the grid pitch and keyed by component name rather than by id,
+  // so a snapshot records the drawing rather than the id factory's counter.
+  for (const [name, fixture] of FIXTURES) {
+    it(`${name} places its symbols where it did last time`, async () => {
+      const design = fixture()
+      const result = await run(design)
+      expect(placementSnapshot(result, design)).toMatchSnapshot()
+    })
+  }
 })
 
 describe("wires", () => {

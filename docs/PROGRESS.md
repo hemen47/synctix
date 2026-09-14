@@ -8,21 +8,22 @@
 
 ## Current task
 
-M3 Layout — migrate the ELK strategy's snapshot coverage onto `manualEdits` and prove no
-symbol overlap on all four fixtures.
+M4 Editor — `@syntrix/ui-canvas` first: a framework-agnostic SVG scene graph over
+circuit-json with hit testing, which the React canvas then renders.
 
-M0', M1' and M2' are complete except M0's one live check: `docker compose up` cannot run
+M0' through M3 are complete except M0's one live check: `docker compose up` cannot run
 because the Docker daemon is not running on this machine. Everything that does not need
 the daemon is verified — see **Blocked**.
 
 ## Next 3 tasks
 
-1. M3: snapshot tests over all four golden fixtures asserting no overlapping symbol
-   bounding boxes, not merely that layout returned something.
-2. M3: prove manual placement wins — a moved component keeps its position across a
-   relayout that adds new components around it.
-3. M4: the editor. `@syntrix/ui-canvas` scene graph and hit testing first, then the
-   three-pane web shell and the Playwright path (place, wire, drag, undo, export SVG).
+1. M4: `@syntrix/ui-canvas` — scene graph built from circuit-json plus `schematic-symbols`
+   geometry, hit testing for symbols, pins and wires, and grid snapping. Framework-free,
+   so it is unit-testable without a browser.
+2. M4: the three-pane web shell — palette, canvas, inspector — wired to the api, with the
+   keyboard map (W wire, R rotate, Del, Ctrl+Z/Y, Esc).
+3. M4: the api routes the editor needs — designs CRUD, operation apply with optimistic
+   concurrency, undo/redo from the log — then the Playwright path.
 
 ## Roadmap v2
 
@@ -82,8 +83,15 @@ the daemon is verified — see **Blocked**.
         stay with the indexes that can express them
   - [x] exit criterion passes on the local index, so it holds with nothing running
   - [x] 59 parts tests; 290 across the workspace
-- [ ] **M3 Layout** — fixtures lay out with no overlapping symbols; snapshot tests;
+- [x] **M3 Layout** — fixtures lay out with no overlapping symbols; snapshot tests;
       `manualEdits` win over automatic placement.
+  - [x] all four fixtures lay out with no intersecting symbol bounding boxes
+  - [x] placement snapshots keyed by component name and rounded to the grid, so they
+        record the drawing rather than the id factory's counter
+  - [x] a manually placed component does not move when new components are added around
+        it — the failure that makes a graphical editor unusable
+  - [x] `clear_placement` visibly hands a component back to ELK
+  - [x] 34 layout tests
 - [ ] **M4 Editor** — Playwright: place R and C from the palette, wire them, drag
       (manualEdits persisted), undo, export SVG; PCB/3D tabs render via runframe.
 - [ ] **M5 Export + Sim** — LTspice `.asc` parses via a written parser test; KiCad export

@@ -1,0 +1,34 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`snapshots > ams1117_regulator places its symbols where it did last time 1`] = `
+{
+  "C1": "x=13.97 y=12.70 w=2.54 h=1.27",
+  "C2": "x=13.97 y=34.29 w=2.54 h=1.27",
+  "U1": "x=16.51 y=57.15 w=7.62 h=5.08",
+}
+`;
+
+exports[`snapshots > ne555_blinker places its symbols where it did last time 1`] = `
+{
+  "C1": "x=13.97 y=19.05 w=2.54 h=1.27",
+  "D1": "x=13.97 y=12.70 w=2.54 h=1.27",
+  "R1": "x=13.97 y=31.75 w=2.54 h=1.27",
+  "R2": "x=13.97 y=25.40 w=2.54 h=1.27",
+  "U1": "x=68.58 y=26.67 w=7.62 h=6.35",
+}
+`;
+
+exports[`snapshots > opamp_inverting places its symbols where it did last time 1`] = `
+{
+  "R1": "x=13.97 y=19.05 w=2.54 h=1.27",
+  "R2": "x=13.97 y=12.70 w=2.54 h=1.27",
+  "U1": "x=38.10 y=15.24 w=7.62 h=6.35",
+}
+`;
+
+exports[`snapshots > rc_lowpass places its symbols where it did last time 1`] = `
+{
+  "C1": "x=24.13 y=12.70 w=2.54 h=1.27",
+  "R1": "x=13.97 y=12.70 w=2.54 h=1.27",
+}
+`;
