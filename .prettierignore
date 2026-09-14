@@ -4,3 +4,7 @@ dist
 coverage
 pnpm-lock.yaml
 vendor
+
+# Vendored verbatim from github.com/tscircuit/skill — reformatting it would make a
+# refresh produce a diff full of whitespace and hide the change that actually matters.
+packages/agent/prompts/tscircuit-skill/

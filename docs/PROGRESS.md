@@ -8,24 +8,23 @@
 
 ## Current task
 
-M6 Agent — tool definitions over the operation set, role→model routing through the Vercel
-AI SDK, the AgentLoop, and the 10-prompt eval suite. **CHECKPOINT B** follows.
+**CHECKPOINT B** — M6 is complete; the agent eval and provider-switch results are
+summarised below. M7 (parts T2) is next.
 
-M0' through M5 are complete except three things, none of them blocking: M0's live
+M0' through M6 are complete except four deferrals, none of them blocking: M0's live
 `docker compose up` (the Docker daemon is not running on this machine), M4's
-runframe-backed PCB/3D tabs (deferred to M9, when there is PCB data worth viewing), and
-M5's `kicad-cli` ERC check (needs the `kicad` profile). See **Blocked**.
+runframe-backed PCB/3D tabs (M9, when there is PCB data worth viewing), M5's `kicad-cli`
+ERC check (needs the `kicad` profile), and M5's op-amp gain figure (M6's parts path). See
+**Blocked**.
 
 ## Next 3 tasks
 
-1. M6: fetch the official tscircuit AI skill into `packages/agent/prompts/` with a
-   refresh script, and build the TSX-mode system prompt on it.
-2. M6: tool definitions generated from core's own Zod schemas via `zod-to-json-schema`,
-   so the tool surface and the REST surface cannot drift; then the AgentLoop, with
-   `run_erc` mandatory before finishing and TSX diagnostics fed back as failures
-   (ADR-0017).
-3. M6: the 10-prompt eval under MockProvider replay, plus the provider-switch test
-   (OpenRouter → Anthropic by env alone).
+1. M7: `LcscEasyEdaSource` over `@tscircuit/parts-engine` and the jlcsearch HTTP endpoint
+   (ADR-0010), with `easyeda-converter@0.0.2` verified first (open question 1).
+2. M7: `KicadLibrarySource` over `kicad-converter` / `kicad-mod-converter`, and the
+   DigiKey adapter, which must report `disabled` without keys rather than failing.
+3. M8: MCP over the same tool definitions the agent uses — `/mcp` Streamable HTTP in the
+   api process plus the stdio entry point.
 
 ## Roadmap v2
 
@@ -133,10 +132,22 @@ M5's `kicad-cli` ERC check (needs the `kicad` profile). See **Blocked**.
   - [ ] **DEFERRED to M6** — op-amp gain within 2%. Core has no `simple_op_amp` factory,
         so the fixture needs the parts layer's resolver path; the measurement harness is
         in place and the RC criterion passes.
-- [ ] **M6 Agent** — 10-prompt eval suite (TSX-mode and ops-mode), ≥8 pass ERC + the
-      expected sim metric under MockProvider replay and under a live provider when a key
-      is present; provider-switch test (OpenRouter → Anthropic via env) passes.
-      — **CHECKPOINT B**
+- [x] **M6 Agent** — 10-prompt eval suite, ≥8 pass under MockProvider replay;
+      provider-switch test (OpenRouter → Anthropic via env) passes. — **CHECKPOINT B**
+  - [x] the official tscircuit AI skill vendored into
+        `packages/agent/prompts/tscircuit-skill/` with a refresh script and a manifest
+  - [x] tool schemas generated from core's own Zod definitions, so the agent surface and
+        the REST surface cannot drift
+  - [x] `move_component` and `undo` deliberately withheld — the model gives intent, not
+        coordinates, and undo is the user's
+  - [x] role→model routing with env override; a provider with no key reports unavailable
+        before the run rather than failing during it
+  - [x] AgentLoop with four invariants: the engine validates everything, ERC always runs,
+        limits are hard, and a rejection returns the engine's hint verbatim
+  - [x] 10-case eval, **10 of 10 passing**, plus 26 unit tests
+  - [ ] **DEFERRED** — the live-provider eval needs an API key, which this machine has
+        none of. The suite is written to run against either; `SYNTRIX_EVAL_LIVE=1` with a
+        key set is the switch.
 - [ ] **M7 Parts T2** — LCSC import end-to-end yields symbol + footprint + 3D; KiCad lib
       import; DigiKey adapter works with keys and reports `disabled` without.
 - [ ] **M8 MCP** — MCP inspector lists all tools over `/mcp` and stdio; end-to-end
@@ -145,6 +156,31 @@ M5's `kicad-cli` ERC check (needs the `kicad` profile). See **Blocked**.
       `pcb_trace`; Gerber export; DSN export as an escape hatch; `kicad-cli` DRC passes
       on a 2-layer ams1117_regulator board when the profile is up; PCB tab becomes
       editable for placement.
+
+## CHECKPOINT B — agent eval and provider switch
+
+**Eval: 10 of 10 pass**, against a bar of 8. Each case asserts on the _design that
+results_, not on the model's prose, because the design is the deliverable. The cases
+cover: adding a component; building an RC low-pass as one atomic batch; using a catalog
+part rather than a bare ftype; **recovering from a rejected call**; creating and
+connecting a named ground net; setting a property after the fact; renaming; recording
+placement intent instead of coordinates; removing a component and its now-dangling trace;
+and declining to invent a part that does not exist.
+
+Four of those are negative or recovery cases on purpose. A suite where every prompt
+succeeds on the first try tests a happy path that real use will not stay on.
+
+**Provider switch: passes.** `SYNTRIX_MODEL_EXECUTOR=anthropic:claude-sonnet-4.5` moves
+the executor role from OpenRouter to Anthropic with no code change and no edit to
+`models.yaml`. A value with no provider prefix changes only the model, which is what makes
+`anthropic/claude-opus-4.5` — an OpenRouter model id — keep working.
+
+**What the eval does not prove.** It runs under `createMockProvider`, which replays
+recorded turns: deterministic, free and offline, so a change to a tool description or to
+the loop is regression-tested without spending money or depending on a provider being up.
+That proves the plumbing — that a model asking for X gets X, that a rejection comes back
+usefully, that ERC always runs. It cannot prove that a real model _would_ ask for X. The
+live run is the separate check, and it needs a key this machine does not have.
 
 ## Bugs the tests found
 

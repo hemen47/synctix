@@ -15,6 +15,8 @@ minimumReleaseAgeExclude:
   - bullmq@6.3.6
   - "@tscircuit/core@0.0.1906"
   - "@tscircuit/eval@0.0.1402"
+  - "@ai-sdk/gateway@4.0.81"
+  - ai@7.0.100
 
 # `calculate-cell-boundaries`, a transitive dependency of @tscircuit/core, hard-depends
 # on react 18.3.1 (it only uses it for lucide-react in its debug graphics). pnpm hoists

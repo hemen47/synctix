@@ -19,9 +19,14 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
-    "@syntrix/shared": "workspace:*",
     "@syntrix/core": "workspace:*",
-    "zod": "3.24.1"
+    "@syntrix/export": "workspace:*",
+    "@syntrix/parts": "workspace:*",
+    "@syntrix/shared": "workspace:*",
+    "@syntrix/sim": "workspace:*",
+    "ai": "^7.0.100",
+    "zod": "3.24.1",
+    "zod-to-json-schema": "3.24.6"
   },
   "devDependencies": {
     "typescript": "^5.7.2",

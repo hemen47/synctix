@@ -1,0 +1,36 @@
+{
+  "source": "https://github.com/tscircuit/skill",
+  "branch": "main",
+  "fetchedAt": "2026-09-14T23:36:44.849Z",
+  "files": [
+    {
+      "name": "SKILL.md",
+      "bytes": 11934
+    },
+    {
+      "name": "SYNTAX.md",
+      "bytes": 5813
+    },
+    {
+      "name": "FOOTPRINTS.md",
+      "bytes": 2292
+    },
+    {
+      "name": "WORKFLOW.md",
+      "bytes": 4274
+    },
+    {
+      "name": "CHECKLIST.md",
+      "bytes": 935
+    },
+    {
+      "name": "BUS_LANES.md",
+      "bytes": 2587
+    },
+    {
+      "name": "LICENSE",
+      "bytes": 1066
+    }
+  ],
+  "note": "Vendored deliberately. Refresh with scripts/fetch-tscircuit-skill.mjs."
+}

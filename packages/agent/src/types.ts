@@ -51,25 +51,6 @@ export type AgentTraceEvent =
   | { kind: "error"; message: string; at: string }
   | { kind: "done"; iterations: number; tokensIn: number; tokensOut: number; at: string }
 
-export interface AgentRunOptions {
-  designId: string
-  prompt: string
-  mode?: "operations" | "tsx"
-  maxIterations?: number
-  /** Loop invariant: ERC must run before the agent is allowed to finish. */
-  requireErcBeforeFinish?: boolean
-}
-
-export interface AgentRunResult {
-  runId: string
-  iterations: number
-  finalVersion: number
-  erc?: { pass: boolean; errorCount: number; warningCount: number }
-  message: string
-  usage: { tokensIn: number; tokensOut: number; costUsd?: number }
-  events: AgentTraceEvent[]
-}
-
 /** Implemented by the real provider bridge and by MockProvider in tests. */
 export interface LlmProvider {
   id: string
