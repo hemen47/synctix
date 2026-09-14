@@ -129,7 +129,7 @@ describe("operationSchema", () => {
     }
   })
 
-  it("defaults move_component to pinned, so a user drag survives relayout", () => {
+  it("defaults move_component to the schematic layer", () => {
     const result = operationSchema.safeParse({
       type: "move_component",
       component: "R1",
@@ -137,7 +137,17 @@ describe("operationSchema", () => {
     })
     expect(result.success).toBe(true)
     if (result.success && result.data.type === "move_component") {
-      expect(result.data.pinned).toBe(true)
+      expect(result.data.layer).toBe("schematic")
     }
+  })
+
+  it("no longer accepts set_layout_override, which manualEdits replaced", () => {
+    // ADR-0013: placement is tscircuit's manual-edits shape now, not our sidecar.
+    const result = operationSchema.safeParse({
+      type: "set_layout_override",
+      elementId: "source_component_0",
+      center: { x: 1, y: 2 },
+    })
+    expect(result.success).toBe(false)
   })
 })

@@ -5,10 +5,14 @@
  * `circuit-json` package's `any_circuit_element` union (a strict discriminated union on
  * `type`, see ADR-0003). Nothing non-spec ever goes in it.
  *
- * Anything we need that the spec does not model goes in `meta`, keyed by element id.
+ * Anything we need that the spec does not model goes in `meta`, keyed by element id —
+ * with one exception. Placements a human chose live in `manualEdits`, which is
+ * tscircuit's own `manual-edits.json` shape rather than ours, so they mean something to
+ * the rest of the toolchain (ADR-0013).
  */
 
 import type { AnyCircuitElement } from "circuit-json"
+import type { ManualEdits } from "./manual-edits"
 
 export interface Design {
   id: string
@@ -16,6 +20,12 @@ export interface Design {
   version: number
   circuit: AnyCircuitElement[]
   meta: Record<string, MetaEntry>
+  /**
+   * Schematic and PCB placements the user dragged, keyed by component name. Always wins
+   * over automatic layout. Separate from `meta` because the shape is tscircuit's, not
+   * ours: `@tscircuit/props`' `manual_edits_file`.
+   */
+  manualEdits: ManualEdits
 }
 
 /**
@@ -24,8 +34,12 @@ export interface Design {
 export interface MetaEntry {
   /** Which part definition produced this element, if any. */
   partRef?: string
-  /** User or layout-engine position overrides. Manual overrides always win a relayout. */
-  layoutOverride?: LayoutOverride
+  /**
+   * Symbol rotation in degrees. Placement lives in `design.manualEdits`, but tscircuit's
+   * manual-edits shape carries position only, so rotation stays here where it has always
+   * genuinely been ours.
+   */
+  rotationDeg?: number
   /** Semantic placement intent recorded by `place_hint`. The LLM writes these. */
   constraints?: PlacementConstraint[]
   /** Where this element came from — agent turn, import, user action. */
@@ -34,13 +48,6 @@ export interface MetaEntry {
   notes?: string[]
   /** Footprint trust, surfaced in BOM and enforced by agent house rules. */
   footprintVerification?: "verified" | "unverified"
-}
-
-export interface LayoutOverride {
-  center?: { x: number; y: number }
-  rotation?: number
-  /** True when a human moved it. Layout must not overwrite these. */
-  pinned?: boolean
 }
 
 export type PlacementConstraint =

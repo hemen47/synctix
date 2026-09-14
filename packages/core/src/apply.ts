@@ -33,6 +33,7 @@ import {
   validateCircuit,
 } from "./elements"
 import type { FtypeSpec } from "./elements"
+import { clearPlacement, emptyManualEdits, setPlacement } from "./manual-edits"
 import {
   buildIndex,
   describePort,
@@ -525,42 +526,37 @@ const reduce = (
           ]),
         ])
       }
+      // Keyed by name, not id: ids are regenerated whenever a design is re-evaluated
+      // from TSX, and a user's drag has to outlive that (ADR-0013).
+      const selector = component.name
       const id = component.source_component_id
+      const rotated =
+        operation.rotation === undefined
+          ? design.meta
+          : {
+              ...design.meta,
+              [id]: { ...design.meta[id], rotationDeg: operation.rotation },
+            }
+
       return ok({
         ...design,
-        meta: {
-          ...design.meta,
-          [id]: {
-            ...design.meta[id],
-            layoutOverride: {
-              center: operation.center,
-              ...(operation.rotation !== undefined ? { rotation: operation.rotation } : {}),
-              pinned: operation.pinned,
-            },
-          },
-        },
+        meta: rotated,
+        manualEdits: setPlacement(design.manualEdits, operation.layer, selector, operation.center),
       })
     }
 
-    case "set_layout_override": {
-      if (!view.byId.has(operation.elementId)) {
-        return err([notFound("ELEMENT_NOT_FOUND" as never, `Element "${operation.elementId}"`, [])])
+    case "clear_placement": {
+      const component = resolveComponent(view, operation.component)
+      if (!component) {
+        return err([
+          notFound("COMPONENT_NOT_FOUND", `Component "${operation.component}"`, [
+            ...view.componentsByName.keys(),
+          ]),
+        ])
       }
-      const previous = design.meta[operation.elementId]?.layoutOverride ?? {}
       return ok({
         ...design,
-        meta: {
-          ...design.meta,
-          [operation.elementId]: {
-            ...design.meta[operation.elementId],
-            layoutOverride: {
-              ...previous,
-              ...(operation.center ? { center: operation.center } : {}),
-              ...(operation.rotation !== undefined ? { rotation: operation.rotation } : {}),
-              ...(operation.pinned !== undefined ? { pinned: operation.pinned } : {}),
-            },
-          },
-        },
+        manualEdits: clearPlacement(design.manualEdits, operation.layer, component.name),
       })
     }
 
@@ -599,6 +595,10 @@ const reduce = (
       if (!validated.ok) return validated
 
       if (operation.strategy === "replace_all") {
+        // `meta` is keyed by element id, and every id in the incoming document is new,
+        // so it cannot survive. `manualEdits` is keyed by component name, which does
+        // survive a re-evaluation — that is the whole reason tscircuit keys it that way,
+        // and dropping it here would throw away the user's drags on every TSX recompile.
         return ok({ ...design, circuit: validated.value, meta: {} })
       }
 
@@ -701,6 +701,7 @@ export const createDesign = (id?: string): Design => ({
   version: 0,
   circuit: [],
   meta: {},
+  manualEdits: emptyManualEdits(),
 })
 
 export { collect }

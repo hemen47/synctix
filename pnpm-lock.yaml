@@ -230,6 +230,9 @@ importers:
       '@syntrix/shared':
         specifier: workspace:*
         version: link:../shared
+      '@tscircuit/props':
+        specifier: 0.0.653
+        version: 0.0.653(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(react@19.3.0)(zod@3.24.1)
       circuit-json:
         specifier: 0.0.491
         version: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
@@ -4999,6 +5002,12 @@ snapshots:
       circuit-json: 0.0.488(format-si-unit@0.0.12(typescript@5.9.3))
       react: 19.3.0
       zod: 3.25.76
+
+  '@tscircuit/props@0.0.653(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(react@19.3.0)(zod@3.24.1)':
+    dependencies:
+      circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
+      react: 19.3.0
+      zod: 3.24.1
 
   '@tscircuit/props@0.0.656(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(react@19.3.0)(zod@3.24.1)':
     dependencies:

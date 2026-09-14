@@ -283,7 +283,14 @@ describe("manual overrides win", () => {
 
     const moved = applyAll(
       design,
-      [{ type: "move_component", component: "C2", center: { x: 50.8, y: 25.4 }, pinned: true }],
+      [
+        {
+          type: "move_component",
+          component: "C2",
+          center: { x: 50.8, y: 25.4 },
+          layer: "schematic",
+        },
+      ],
       ctx,
     )
     expect(moved.ok).toBe(true)

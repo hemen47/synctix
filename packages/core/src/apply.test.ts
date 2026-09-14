@@ -368,16 +368,17 @@ describe("place_hint and move_component", () => {
     expect(design.meta[id]?.constraints).toHaveLength(2)
   })
 
-  it("records a user move as a pinned layout override", () => {
+  it("records a user move in manualEdits, which layout must not overwrite", () => {
     const design = run(oneResistor(), {
       type: "move_component",
       component: "R1",
       center: { x: 5, y: 10 },
-      pinned: true,
+      layer: "schematic",
     })
 
-    const id = buildIndex(design.circuit).componentsByName.get("R1")!.source_component_id
-    expect(design.meta[id]?.layoutOverride).toMatchObject({ center: { x: 5, y: 10 }, pinned: true })
+    expect(design.manualEdits.schematic_placements).toEqual([
+      { selector: "R1", relative_to: "group_center", center: { x: 5, y: 10 } },
+    ])
   })
 })
 

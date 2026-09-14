@@ -126,22 +126,25 @@ const baseOps = [
   /**
    * Absolute placement. Reserved for the user and the layout engine — the agent tool
    * surface does not expose it.
+   *
+   * Writes `design.manualEdits`, which layout reads and never overwrites. There is no
+   * `pinned` flag: presence in `manualEdits` *is* pinned, which is also what tscircuit
+   * means by it (ADR-0013).
    */
   z.object({
     type: z.literal("move_component"),
     component: z.string(),
     center: z.object({ x: z.number(), y: z.number() }),
     rotation: z.number().optional(),
-    /** Set when a human moved it, so relayout will not overwrite the position. */
-    pinned: z.boolean().default(true),
+    /** Which drawing the placement applies to. */
+    layer: z.enum(["schematic", "pcb"]).default("schematic"),
   }),
 
+  /** Hand a component back to automatic layout, discarding the manual placement. */
   z.object({
-    type: z.literal("set_layout_override"),
-    elementId: z.string(),
-    center: z.object({ x: z.number(), y: z.number() }).optional(),
-    rotation: z.number().optional(),
-    pinned: z.boolean().optional(),
+    type: z.literal("clear_placement"),
+    component: z.string(),
+    layer: z.enum(["schematic", "pcb"]).default("schematic"),
   }),
 
   /**

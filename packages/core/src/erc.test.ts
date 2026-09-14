@@ -183,6 +183,7 @@ describe("duplicate_refdes", () => {
       id: "d",
       version: 1,
       meta: {},
+      manualEdits: {},
       circuit: [
         {
           type: "source_component",
@@ -213,6 +214,7 @@ describe("unknown_part_pin", () => {
       id: "d",
       version: 1,
       meta: {},
+      manualEdits: {},
       circuit: [
         {
           type: "source_trace",
@@ -274,7 +276,12 @@ describe("summarizeForLLM", () => {
   it("never leaks coordinates into the summary", () => {
     let design = build(...rcLowpassOperations)
     const moved = applyAll(design, [
-      { type: "move_component", component: "R1", center: { x: 12.345, y: 67.89 }, pinned: true },
+      {
+        type: "move_component",
+        component: "R1",
+        center: { x: 12.345, y: 67.89 },
+        layer: "schematic",
+      },
     ])
     if (moved.ok) design = moved.value
 

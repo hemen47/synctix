@@ -14,7 +14,7 @@ import ELK from "elkjs/lib/elk.bundled.js"
 import type { ElkNode, ElkExtendedEdge } from "elkjs/lib/elk-api"
 import type { AnyCircuitElement } from "circuit-json"
 import type { Design } from "@syntrix/core"
-import { buildIndex, electricalNets } from "@syntrix/core"
+import { buildIndex, electricalNets, findPlacement } from "@syntrix/core"
 import type { Result, ValidationError } from "@syntrix/shared"
 import {
   err,
@@ -86,7 +86,9 @@ export class ElkLayoutStrategy implements LayoutStrategy {
     for (const component of view.components.values()) {
       const ports = view.portsByComponent.get(component.source_component_id) ?? []
       const ftype = component.ftype ?? "simple_chip"
-      const override = design.meta[component.source_component_id]?.layoutOverride
+      // A manual edit is a placement the user chose. It wins outright (ADR-0013), and
+      // it is keyed by component name rather than id so it survives a TSX recompile.
+      const placement = findPlacement(design.manualEdits, "schematic", component.name)
 
       plans.push({
         componentId: component.source_component_id,
@@ -98,8 +100,8 @@ export class ElkLayoutStrategy implements LayoutStrategy {
           side: sideForPin(port, ftype, index, ports.length),
           pinNumber: port.pin_number ?? index + 1,
         })),
-        // Rule 1: a pinned override is a fixed position, not a suggestion.
-        ...(override?.pinned && override.center ? { pinned: override.center } : {}),
+        // Rule 1: a manual placement is a fixed position, not a suggestion.
+        ...(placement ? { pinned: placement.center } : {}),
       })
     }
 

@@ -72,7 +72,7 @@ const designWithPins = (a: PortFlags, b: PortFlags, extra: Partial<Design> = {})
     throw new Error(`fixture is not valid circuit-json: ${validated.error[0]?.message}`)
   }
 
-  return { id: "d", version: 1, meta: {}, circuit: validated.value, ...extra }
+  return { id: "d", version: 1, meta: {}, manualEdits: {}, circuit: validated.value, ...extra }
 }
 
 const find = (design: Design, rule: string) =>
@@ -160,6 +160,7 @@ describe("dangling_pin severity", () => {
       id: "d",
       version: 1,
       meta: {},
+      manualEdits: {},
       circuit: [
         { type: "source_component", source_component_id: "u1", ftype: "simple_chip", name: "U1" },
         {
@@ -183,6 +184,7 @@ describe("dangling_pin severity", () => {
       id: "d",
       version: 1,
       meta: {},
+      manualEdits: {},
       circuit: [
         { type: "source_component", source_component_id: "u1", ftype: "simple_chip", name: "U1" },
         {
@@ -214,6 +216,7 @@ describe("single_pin_net", () => {
       id: "d",
       version: 1,
       meta: {},
+      manualEdits: {},
       circuit: [
         { type: "source_component", source_component_id: "u1", ftype: "simple_chip", name: "U1" },
         {
@@ -261,6 +264,7 @@ describe("single_pin_net", () => {
       id: "d",
       version: 1,
       meta: {},
+      manualEdits: {},
       circuit: [
         { type: "source_component", source_component_id: "u1", ftype: "simple_chip", name: "U1" },
         {

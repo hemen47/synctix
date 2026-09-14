@@ -2,7 +2,7 @@
  * Layout plugin contract.
  *
  * The LLM gives semantic hints; a strategy turns them into coordinates (principle 4).
- * A strategy reads `meta.constraints` and `meta.layoutOverride` and returns positioned
+ * A strategy reads `meta.constraints` and `design.manualEdits` and returns positioned
  * schematic elements — it never edits the source graph.
  */
 

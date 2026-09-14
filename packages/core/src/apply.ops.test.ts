@@ -8,6 +8,7 @@ import { createSequentialIdFactory, setIdFactory } from "@syntrix/shared"
 import { apply, applyAll, createDesign } from "./apply"
 import { buildIndex, elementId, resolvePort } from "./index-view"
 import { validateCircuit } from "./elements"
+import { findPlacement } from "./manual-edits"
 import type { Design } from "./types"
 import type { Operation } from "./operations"
 
@@ -213,56 +214,104 @@ describe("disconnect from a net", () => {
   })
 })
 
-describe("set_layout_override", () => {
+describe("move_component and clear_placement", () => {
   const oneResistor = () =>
     build({ type: "add_component", ftype: "simple_resistor", name: "R1", props: {} })
 
-  it("stores an override against an element id", () => {
-    const design = oneResistor()
-    const id = buildIndex(design.circuit).componentsByName.get("R1")!.source_component_id
-
-    const result = apply(design, {
-      type: "set_layout_override",
-      elementId: id,
+  it("records the placement against the component name, not its id", () => {
+    // Ids are regenerated on every TSX re-evaluation; names survive it. Keying by name
+    // is what makes a user's drag outlive a recompile (ADR-0013).
+    const result = apply(oneResistor(), {
+      type: "move_component",
+      component: "R1",
       center: { x: 1, y: 2 },
-      pinned: true,
+      layer: "schematic",
     })
 
     expect(result.ok).toBe(true)
     if (result.ok) {
-      expect(result.value.meta[id]?.layoutOverride).toMatchObject({
+      expect(findPlacement(result.value.manualEdits, "schematic", "R1")).toMatchObject({
+        selector: "R1",
         center: { x: 1, y: 2 },
-        pinned: true,
+        relative_to: "group_center",
       })
     }
   })
 
-  it("merges into an existing override rather than replacing it", () => {
-    const design = oneResistor()
-    const id = buildIndex(design.circuit).componentsByName.get("R1")!.source_component_id
-
-    const result = applyAll(design, [
-      { type: "set_layout_override", elementId: id, center: { x: 1, y: 2 } },
-      { type: "set_layout_override", elementId: id, rotation: 90 },
+  it("replaces a previous placement rather than accumulating them", () => {
+    const result = applyAll(oneResistor(), [
+      { type: "move_component", component: "R1", center: { x: 1, y: 2 }, layer: "schematic" },
+      { type: "move_component", component: "R1", center: { x: 9, y: 9 }, layer: "schematic" },
     ])
 
     expect(result.ok).toBe(true)
     if (result.ok) {
-      // A rotation must not discard the position that was set a moment earlier.
-      expect(result.value.meta[id]?.layoutOverride).toMatchObject({
-        center: { x: 1, y: 2 },
-        rotation: 90,
+      expect(result.value.manualEdits.schematic_placements).toHaveLength(1)
+      expect(findPlacement(result.value.manualEdits, "schematic", "R1")?.center).toEqual({
+        x: 9,
+        y: 9,
       })
     }
   })
 
-  it("reports an unknown element id", () => {
+  it("keeps schematic and pcb placements apart", () => {
+    const result = applyAll(oneResistor(), [
+      { type: "move_component", component: "R1", center: { x: 1, y: 2 }, layer: "schematic" },
+      { type: "move_component", component: "R1", center: { x: 30, y: 40 }, layer: "pcb" },
+    ])
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(findPlacement(result.value.manualEdits, "schematic", "R1")?.center).toEqual({
+        x: 1,
+        y: 2,
+      })
+      expect(findPlacement(result.value.manualEdits, "pcb", "R1")?.center).toEqual({ x: 30, y: 40 })
+    }
+  })
+
+  it("keeps rotation in the sidecar, where tscircuit's placement shape has no room", () => {
+    const design = oneResistor()
+    const id = buildIndex(design.circuit).componentsByName.get("R1")!.source_component_id
+
+    const result = apply(design, {
+      type: "move_component",
+      component: "R1",
+      center: { x: 1, y: 2 },
+      rotation: 90,
+      layer: "schematic",
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.value.meta[id]?.rotationDeg).toBe(90)
+  })
+
+  it("clear_placement hands the component back to automatic layout", () => {
+    const result = applyAll(oneResistor(), [
+      { type: "move_component", component: "R1", center: { x: 1, y: 2 }, layer: "schematic" },
+      { type: "clear_placement", component: "R1", layer: "schematic" },
+    ])
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      // The key is dropped entirely: an empty array would read as "pinned nothing here"
+      // rather than "never touched".
+      expect(result.value.manualEdits.schematic_placements).toBeUndefined()
+    }
+  })
+
+  it("reports an unknown component", () => {
     expect(
       fail(oneResistor(), {
-        type: "set_layout_override",
-        elementId: "nope",
+        type: "move_component",
+        component: "nope",
         center: { x: 0, y: 0 },
+        layer: "schematic",
       }).length,
+    ).toBeGreaterThan(0)
+    expect(
+      fail(oneResistor(), { type: "clear_placement", component: "nope", layer: "schematic" })
+        .length,
     ).toBeGreaterThan(0)
   })
 })
