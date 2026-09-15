@@ -148,8 +148,17 @@ ERC check (needs the `kicad` profile), and M5's op-amp gain figure (M6's parts p
   - [ ] **DEFERRED** — the live-provider eval needs an API key, which this machine has
         none of. The suite is written to run against either; `SYNTRIX_EVAL_LIVE=1` with a
         key set is the switch.
-- [ ] **M7 Parts T2** — LCSC import end-to-end yields symbol + footprint + 3D; KiCad lib
-      import; DigiKey adapter works with keys and reports `disabled` without.
+- [x] **M7 Parts T2** — LCSC import end-to-end yields symbol + footprint + 3D; KiCad lib
+      import; DigiKey adapter reports `disabled` without keys.
+  - [x] `LcscSource` over `@tscircuit/parts-engine`, not `easyeda-converter` — verified
+        live on C6186: 4 pins, a verified footprint of 7 pcb elements, and a STEP model
+        (ADR-0022, closing open question 1)
+  - [x] `KicadLibrarySource` over `kicad-mod-converter`; the only source with no key and
+        no network (ADR-0023, closing open question 3)
+  - [x] `DigiKeySource` with OAuth2 client credentials, token cached; reports `disabled`
+        without keys and never turns a search into an error
+  - [x] all three registered by default and skipped when unconfigured
+  - [x] 75 parts tests, every one offline
 - [ ] **M8 MCP** — MCP inspector lists all tools over `/mcp` and stdio; end-to-end
       circuit creation from an external MCP client.
 - [ ] **M9 PCB** — `pcb_board` + placement constraints + tscircuit autorouter →
@@ -319,15 +328,15 @@ than the multi-GB KiCad pull v1 needed — that image now sits behind `PROFILES=
 
 ## Open questions
 
-1. **`easyeda-converter@0.0.2`** — verify its API before the M7 `LcscEasyEdaSource`
-   adapter; the fallback is a direct EasyEDA-JSON → circuit-json mapping. ADR-0010
-   covers the rest of that adapter's dependencies.
+1. ~~**`easyeda-converter@0.0.2`**~~ — resolved by ADR-0022. It is built against the
+   pre-`circuit-json` packages and its own two functions do not compose;
+   `@tscircuit/parts-engine` is used instead and was verified live.
 2. ~~**`@tscircuit/eval` sandboxing**~~ — resolved by ADR-0015. In-process with CDN
    loading off, a timeout and a guaranteed kill is adequate for trusted input; an
    untrusted caller needs a process boundary, which is decided at M8 when MCP exposes
    `generate_tsx_circuit` externally.
-3. **KiCad symbol licensing** — kicad-symbols is CC-BY-SA 4.0 with an exception; record
-   the exact terms per part in `provenance` and surface it in the BOM export. Confirm
-   the wording at M7.
+3. ~~**KiCad symbol licensing**~~ — resolved by ADR-0023. CC-BY-SA 4.0 with the library
+   exception (a design using a footprint is not a derivative work); the wording is
+   recorded on every part the source produces.
 4. ~~**WASM ngspice in Node**~~ — resolved by ADR-0019. There is no WASM ngspice path in
    tscircuit; its engine is `spicey`, pure JavaScript, already in our dependency closure.

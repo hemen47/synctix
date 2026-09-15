@@ -19,11 +19,15 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
-    "@syntrix/shared": "workspace:*",
     "@syntrix/core": "workspace:*",
+    "@syntrix/shared": "workspace:*",
+    "@tscircuit/footprinter": "0.0.426",
+    "@tscircuit/parts-engine": "0.0.32",
     "circuit-json": "0.0.491",
-    "zod": "3.24.1",
-    "@tscircuit/footprinter": "0.0.426"
+    "easyeda-converter": "0.0.2",
+    "kicad-converter": "0.0.17",
+    "kicad-mod-converter": "0.0.30",
+    "zod": "3.24.1"
   },
   "devDependencies": {
     "typescript": "^5.7.2",

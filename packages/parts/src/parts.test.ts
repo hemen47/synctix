@@ -320,9 +320,32 @@ describe("search", () => {
 
 describe("registry and federated search", () => {
   it("searches T0 through the default registry", async () => {
-    const result = await federatedSearch(createDefaultRegistry(), "3.3V LDO SOT-223")
+    // T2 sources are registered too and are off without credentials or a network, so the
+    // assertion is about T0 still answering first rather than about how many sources the
+    // registry happens to hold.
+    const result = await federatedSearch(
+      createDefaultRegistry({ env: { LCSC_ENABLED: "false" } as NodeJS.ProcessEnv }),
+      "3.3V LDO SOT-223",
+    )
+
     expect(result.results[0]?.mpn).toBe("AMS1117-3.3")
-    expect(result.sources).toEqual([{ id: "t0", status: "ready", count: expect.any(Number) }])
+    expect(result.sources).toContainEqual({ id: "t0", status: "ready", count: expect.any(Number) })
+  })
+
+  it("registers the T2 sources, disabled until they are configured", async () => {
+    const registry = createDefaultRegistry({ env: {} as NodeJS.ProcessEnv })
+
+    expect(
+      registry
+        .list()
+        .map((s) => s.id)
+        .sort(),
+    ).toEqual(["digikey", "kicad", "lcsc", "t0"])
+    // Registered is not the same as usable: without a key, a checkout or a network they
+    // report disabled and are skipped, which is what keeps a search working for the
+    // majority of installations that configure none of them.
+    expect(registry.get("digikey")?.status()).toBe("disabled")
+    expect(registry.get("kicad")?.status()).toBe("disabled")
   })
 
   it("skips a disabled source instead of failing", async () => {

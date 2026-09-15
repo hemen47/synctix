@@ -387,9 +387,21 @@ importers:
       '@tscircuit/footprinter':
         specifier: 0.0.426
         version: 0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3)
+      '@tscircuit/parts-engine':
+        specifier: 0.0.32
+        version: 0.0.32(typescript@5.9.3)
       circuit-json:
         specifier: 0.0.491
         version: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
+      easyeda-converter:
+        specifier: 0.0.2
+        version: 0.0.2(typescript@5.9.3)
+      kicad-converter:
+        specifier: 0.0.17
+        version: 0.0.17(tscircuit@0.0.2543(@tscircuit/schematic-corpus@0.0.114(typescript@5.9.3))(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(three@0.179.1)(typescript@5.9.3))(typescript@5.9.3)(zod@3.24.1)
+      kicad-mod-converter:
+        specifier: 0.0.30
+        version: 0.0.30(@tscircuit/footprinter@0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3))(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(typescript@5.9.3)
       zod:
         specifier: 3.24.1
         version: 3.24.1
@@ -1196,6 +1208,9 @@ packages:
   '@jscad/modeling@2.13.0':
     resolution: {integrity: sha512-Thv/JJZZOMzQ9rfhP+75PbgrNbBTZduRL+ClaGfGFts9+JdIXcUueqRL3NtZZ/v/hyZCUBkPSRxHIi4icz04tQ==}
 
+  '@lume/kiwi@0.1.0':
+    resolution: {integrity: sha512-iB+oaYyaVK1hQ0cODubnoSDg4gGYL9cp/4ad7G1b9Z0/IqehPztp5qE3KP2mV9Ns0UYmzwvtkEhTCmKUuhorbg==}
+
   '@lume/kiwi@0.4.4':
     resolution: {integrity: sha512-ie0YTKgiZqD4TXlJ4eUbfi4UEoKs6YlLRYNTfPm5eUXwfudTBmPRs7Qcxz2SWKDpVTwThv3sWG6zwtyAA0nPpw==}
 
@@ -1539,6 +1554,14 @@ packages:
     peerDependencies:
       typescript: ^5.0.0
 
+  '@tscircuit/builder@1.11.7':
+    resolution: {integrity: sha512-6fQi8jvNWYyvbNCHl3fggiv5pdDLDdLL1fJoGiqvyqVHNfxDsBulFtM8LWfsiqLrqrML3IKZTLBHwYxaOrpaDA==}
+    peerDependencies:
+      '@tscircuit/footprinter': '*'
+      '@tscircuit/props': '*'
+      '@tscircuit/soup': '*'
+      '@tscircuit/soup-util': '*'
+
   '@tscircuit/capacity-autorouter@0.0.718':
     resolution: {integrity: sha512-DxWzF6sa+0ktVgIXaBEBa5jqyQacNaEPMPZFLjb2js0zUj2PcfihfaFBb456RTNDwRqEsjEIrqlvmAknMsiVVw==}
 
@@ -1697,8 +1720,20 @@ packages:
     peerDependencies:
       tscircuit: '*'
 
+  '@tscircuit/layout@0.0.25':
+    resolution: {integrity: sha512-Mk7LveFUkvV7X5+DjX3aAKClkvPOcIEiPz6knIxay3VZCMJw7sSX1QJVa6VJiUiaV51uFohqvwymLhYOaW/kAg==}
+    peerDependencies:
+      '@tscircuit/manual-edit-events': '*'
+      '@tscircuit/schematic-autolayout': '*'
+      '@tscircuit/soup': '*'
+      '@tscircuit/soup-util': '*'
+      zod: '*'
+
   '@tscircuit/manifold-2d@0.0.6':
     resolution: {integrity: sha512-kYny1hDwPHOwRfMQtbfLh0nvCQ7nM91kkHy7pnj1UrqM6rcgDymZVCZB7ib5Cx1aZFIs8xCCF7lA51tq+giDcw==}
+
+  '@tscircuit/manual-edit-events@0.0.8':
+    resolution: {integrity: sha512-sLk+FgqV3qoRCesQV1qnoyhcwR4kUbYWK96YL4HmvDFWaqHavmWyI7FwbPUXUKynB6CGAb+/TBC5dNdpVZkyMw==}
 
   '@tscircuit/matchpack@0.0.95':
     resolution: {integrity: sha512-mVQV+7jcjjWuXAbR5RFmU/7zLFwpRnIkEWjyDf5Y7S/rVeILoxNq9qWiK9aXeyr3xabcCByXsx5EqOkbrycO4w==}
@@ -1751,6 +1786,19 @@ packages:
       spicets: '*'
       typescript: ^5
 
+  '@tscircuit/parts-engine@0.0.32':
+    resolution: {integrity: sha512-XtUWt5Fg2rnlSeB5avSMYzJFGTPrlnHNperl9vA3WFCfPLSlwbRuZgvOZuefhJNKDjVENU7z4np/BumeZxlQcA==}
+    peerDependencies:
+      typescript: ^5
+
+  '@tscircuit/props@0.0.6':
+    resolution: {integrity: sha512-P1GkfL4n68Y116lfjahnk9AbD2E6N5tqBApVNgIZSvbFWVv3mpq/+z1FVTdSm3gljZfLU4G1yQsIufVKcHbX3Q==}
+    peerDependencies:
+      '@tscircuit/layout': '*'
+      '@tscircuit/soup': '*'
+      react: 19.3.0
+      zod: '*'
+
   '@tscircuit/props@0.0.653':
     resolution: {integrity: sha512-cWQltFc2FweYWchurMTgp3iJuDBDqdACePhjwKdAGm7Tfbyhzo4HI62evKFAIgCjDDSAyF/tCGL9xn87+dJ3/g==}
     peerDependencies:
@@ -1765,8 +1813,14 @@ packages:
       react: 19.3.0
       zod: '*'
 
+  '@tscircuit/routing@1.3.1':
+    resolution: {integrity: sha512-DQRAFvk3uikRMbeOTWnNAdoSVdStx9o8UZhvh6pcoqxJsx4RKWg8d9ssycm2v7wzyg8rjjUPJUpymgkJQtBPpA==}
+
   '@tscircuit/runframe@0.0.2722':
     resolution: {integrity: sha512-8CWXfFmA23soMjtguLvquV8MAk2i9lFYfPLaG+xxl8p1fKgIf9xhXWHOcDdLbBsjLo+r4OGHHn1nlbVHBftdUw==}
+
+  '@tscircuit/schematic-autolayout@0.0.5':
+    resolution: {integrity: sha512-I4CtLQfqTPTxDSumnquaJtkJkc16VjLC4bwU3jQdBXwwh9ODzBf88clUznUtDDzwV+BPM5P0W0VCfFhvPL3/Cw==}
 
   '@tscircuit/schematic-corpus@0.0.114':
     resolution: {integrity: sha512-jDQX+XDXP6PklB39X8AwUSuiqGRdn78esy1wD/qG8U3cCXkT5rtE3ousDVaKRxclCeED8FxJlD+ZvRtAe8mw8w==}
@@ -1809,6 +1863,9 @@ packages:
       circuit-json: '*'
       transformation-matrix: '*'
       zod: '*'
+
+  '@tscircuit/soup@0.0.73':
+    resolution: {integrity: sha512-Q+0gSFunYKagabLUIqtAeuIy14+/z5YRlv0C/ESbAW7miN6gTSlHDV5TD8J3v40DsxiJQF6NRSHbmcBL+C31ng==}
 
   '@turbo/darwin-64@2.10.12':
     resolution: {integrity: sha512-9nKgKoF6ZOUsM+or0OtNf+TTJSfGvDNP7ZFv/ZGWVwOSCkumyctQiTeHwB4UNljHTnC41AqylgbunLDHoccNrA==}
@@ -2060,6 +2117,9 @@ packages:
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
     engines: {node: '>=6.5'}
+
+  abs-svg-path@0.1.1:
+    resolution: {integrity: sha512-d8XPSGjfyzlXC3Xx891DJRyZfqk5JU0BJrDQcsWomFIV1/BIzPW5HDH5iDdWpqWaav0YVIEzT1RHTwWr0FFshA==}
 
   accepts@1.3.8:
     resolution: {integrity: sha512-PYAthTa2m2VKxuvSD3DPC/Gy+U+sOA1LAuT8mkmRuvw+NACSaeXEQ+NHcVF7rONl6qcaxV3Uuemwawk+7+SJLw==}
@@ -2337,6 +2397,11 @@ packages:
       tscircuit: '*'
       typescript: ^5.0.0
 
+  circuit-json-to-gerber@0.0.5:
+    resolution: {integrity: sha512-FpxgkFKYkbhHPREQPWBpc+IEvOoGjOOG4K1ItjB5JQCRJNRJUtqzM5S6lhB/FU9Ye8QaAgkzJoo8M28wBYemhA==}
+    peerDependencies:
+      typescript: ^5.0.0
+
   circuit-json-to-gltf@0.0.125:
     resolution: {integrity: sha512-OPZ1TN+qUQ7F4HxbAx6W1RTcZSWe0ZBmq6Xjvz7lFh1Q2fXg2qdVgZcv4tOCuFYfzZsa5Genwfxtae0EjWMdcw==}
     peerDependencies:
@@ -2432,6 +2497,10 @@ packages:
   comlink@4.4.2:
     resolution: {integrity: sha512-OxGdvBmJuNKSCMO4NTl1L47VRp6xn2wG4F/2hYzB6tiCb709otOxtEYCSvK80PtjODfXXZu8ds+Nw5kVCjqd2g==}
 
+  commander@12.1.0:
+    resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
+    engines: {node: '>=18'}
+
   commander@4.1.1:
     resolution: {integrity: sha512-NOKm8xhkzAjzFx8B2v5OAHT+u5pRQc2UCa2Vq9jYL/31o2wi9mxBA7LIFs3sV5VSC49z6pEhfbMULvShKj26WA==}
     engines: {node: '>= 6'}
@@ -2460,6 +2529,9 @@ packages:
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
+
+  convert-units@2.3.4:
+    resolution: {integrity: sha512-ERHfdA0UhHJp1IpwE6PnFJx8LqG7B1ZjJ20UvVCmopEnVCfER68Tbe3kvN63dLbYXDA2xFWRE6zd4Wsf0w7POg==}
 
   cookie-signature@1.0.7:
     resolution: {integrity: sha512-NXdYc3dLr47pBkpUCHtKSwIOQXLVn8dZEuywboCOJY/osA0wFSLlSawr3KN8qXJEyX66FcONTH8EIlVuK0yyFA==}
@@ -2618,6 +2690,12 @@ packages:
 
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
+
+  easyeda-converter@0.0.2:
+    resolution: {integrity: sha512-ocVPRviiCYvcooTp/9uFPz/ZeQEc6uIpcstuBKGwqWOyifM0Lgz1LgvVpIlt3MbtXG//qZbt08clN9183gOq8w==}
+    hasBin: true
+    peerDependencies:
+      typescript: ^5.5.2
 
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
@@ -2928,6 +3006,9 @@ packages:
     resolution: {integrity: sha512-oahGvuMGQlPw/ivIYBjVSrWAfWLBeku5tpPE2fOPLi+WHffIWbuh2tCjhyQhTBPMf5E9jDEH4FOmTYgYwbKwtQ==}
     engines: {node: '>=18'}
 
+  glpk.js@4.0.2:
+    resolution: {integrity: sha512-GADfTGaExp7C6JfBnBdx7SF80hxPO30VvLP9wpA6EhXgDj5/Oapm+gyF0EFEC7RrPX4JpfRI3TmAtlLckeQIXw==}
+
   gopd@1.2.0:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
     engines: {node: '>= 0.4'}
@@ -2982,6 +3063,9 @@ packages:
   hasown@2.0.4:
     resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
     engines: {node: '>= 0.4'}
+
+  heap@0.2.5:
+    resolution: {integrity: sha512-G7HLD+WKcrOyJP5VQwYZNC3Z6FcQ7YYjEFiFoIj8PfEr73mu421o8B1N5DKUcc8K37EsJ2XXWA8DtrDz/2dReg==}
 
   html-escaper@2.0.2:
     resolution: {integrity: sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg==}
@@ -3058,6 +3142,9 @@ packages:
 
   is-reference@1.2.1:
     resolution: {integrity: sha512-U82MsXXiFIrjCK4otLT+o2NA2Cd2g5MLoOVXUZjIOhLurrRxpEXzI8O0KZHr3IjLvlAH1kTPYSuqer5T9ZVBKQ==}
+
+  is-svg-path@1.0.2:
+    resolution: {integrity: sha512-Lj4vePmqpPR1ZnRctHv8ltSh1OrSxHkhUkd7wi+VQdcdP15/KvQFyk7LhNuM7ZW0EVbJz8kZLVmL9quLrfq4Kg==}
 
   is-unsafe@2.0.2:
     resolution: {integrity: sha512-HgbIHPBH0KHHCcjLfGsCvhtPTVxjaAZlXjwdz7/GQC40SjSe4sfQsar8J5VFo8JOSbarkpV0OLG95bbaNd9aAQ==}
@@ -3163,6 +3250,17 @@ packages:
     resolution: {integrity: sha512-nIvXOYbjW2qzBqy7n+4zL8pfHABFH721U8zWCoTmKNQYuFzSO2ZvKPfiEHH+PSUB3b6Iu8hTg7fCrXft0rHNxw==}
     hasBin: true
 
+  kicad-converter@0.0.17:
+    resolution: {integrity: sha512-fb8B8frGrMkm52WRUo3XIhqkUSKERjNABtPAEP58Nyrcop0ux8++PlOptj6B6LzXWw3Rkt3EgjDillqGjoPfAg==}
+    peerDependencies:
+      tscircuit: '*'
+      typescript: ^5.0.0
+      zod: '*'
+
+  kicad-mod-converter@0.0.30:
+    resolution: {integrity: sha512-EJ2fjXNppargbIrVH8JmOZbZkju0cqPdfeb39ZJNvvu3j59MFKoSGH2Y1VscG4ygVwxWEPchmlf4566nMq+EaA==}
+    hasBin: true
+
   kicad-to-circuit-json@0.0.117:
     resolution: {integrity: sha512-JXIGIix7t39kcpqFEQP9m/eWqN/2MqeCFME628xbhrXRu8nNBSGD54vozKNh9GsFVqIpzGxciS6SGVxWrA+osw==}
     peerDependencies:
@@ -3188,8 +3286,65 @@ packages:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
     engines: {node: '>=10'}
 
+  lodash._basebind@2.3.0:
+    resolution: {integrity: sha512-SHqM7YCuJ+BeGTs7lqpWnmdHEeF4MWxS3dksJctHFNxR81FXPOzA4bS5Vs5CpcGTkBpM8FCl+YEbQEblRw8ABg==}
+
+  lodash._basecreate@2.3.0:
+    resolution: {integrity: sha512-vwZaWldZwS2y9b99D8i9+WtgiZXbHKsBsMrpxJEqTsNW20NhJo5W8PBQkeQO9CmxuqEYn8UkMnfEM2MMT4cVrw==}
+
+  lodash._basecreatecallback@2.3.0:
+    resolution: {integrity: sha512-Ev+pDzzfVfgbiucpXijconLGRBar7/+KNCf05kSnk4CmdDVhAy1RdbU9efCJ/o9GXI08JdUGwZ+5QJ3QX3kj0g==}
+
+  lodash._basecreatewrapper@2.3.0:
+    resolution: {integrity: sha512-YLycQ7k8AB9Wc1EOvLNxuRWcqipDkMXq2GCgnLWQR6qtgTb3gY3LELzEpnFshrEO4LOLs+R2EpcY+uCOZaLQ8Q==}
+
+  lodash._createwrapper@2.3.0:
+    resolution: {integrity: sha512-XjaI/rzg9W+WO4WJDQ+PRlHD5sAMJ1RhJLuT65cBxLCb1kIYs4U20jqvTDGAWyVT3c34GYiLd9AreHYuB/8yJA==}
+
+  lodash._objecttypes@2.3.0:
+    resolution: {integrity: sha512-jbA6QyHt9cw3BzvbWzIcnU3Z12jSneT6xBgz3Y782CJsN1tV5aTBKrFo2B4AkeHBNaxSrbPYZZpi1Lwj3xjdtg==}
+
+  lodash._renative@2.3.0:
+    resolution: {integrity: sha512-v44MRirqYqZGK/h5UKoVqXWF2L+LUiLTU+Ogu5rHRVWJUA1uWIlHaMpG8f/OA8j++BzPMQij9+erXHtgFcbuwg==}
+
+  lodash._setbinddata@2.3.0:
+    resolution: {integrity: sha512-xMFfbF7dL+sFtrdE49uHFmfpBAEwlFtfgMp86nQRlAF6aizYL+3MTbnYMKJSkP1W501PhsgiBED5kBbZd8kR2g==}
+
+  lodash._shimkeys@2.3.0:
+    resolution: {integrity: sha512-9Iuyi7TiWMGa/9+2rqEE+Zwye4b/U2w7Saw6UX1h6Xs88mEER+uz9FZcEBPKMVKsad9Pw5GNAcIBRnW2jNpneQ==}
+
+  lodash._slice@2.3.0:
+    resolution: {integrity: sha512-7C61GhzRUv36gTafr+RIb+AomCAYsSATEoK4OP0VkNBcwvsM022Z22AVgqjjzikeNO1U29LzsJZDvLbiNPUYvA==}
+
+  lodash.bind@2.3.0:
+    resolution: {integrity: sha512-goakyOo+FMN8lttMPnZ0UNlr5RlzX4IrUXyTJPT2A0tGCMXySupond9wzvDqTvVmYTcQjIKGrj8naJDS2xWAlQ==}
+
+  lodash.foreach@2.3.0:
+    resolution: {integrity: sha512-yLnyptVRJd0//AbGp480grgQG9iaDIV5uOgSbpurRy1dYybPbjNTLQ3FyLEQ84buVLPG7jyaiyvpzgfOutRB3Q==}
+
+  lodash.forown@2.3.0:
+    resolution: {integrity: sha512-dUnCsuQTtq3Y7bxPNoEEqjJjPL2ftLtcz2PTeRKvhbpdM514AvnqCjewHGsm/W+dwspIwa14KoWEZeizJ7smxA==}
+
+  lodash.identity@2.3.0:
+    resolution: {integrity: sha512-NYJ2r2cwy3tkx/saqbIZEX6oQUzjWTnGRu7d/zmBjMCZos3eHBxCpbvWFWSetv8jFVrptsp6EbWjzNgBKhUoOA==}
+
+  lodash.isfunction@2.3.0:
+    resolution: {integrity: sha512-X5lteBYlCrVO7Qc00fxP8W90fzRp6Ax9XcHANmU3OsZHdSyIVZ9ZlX5QTTpRq8aGY+9I5Rmd0UTzTIIyWPugEQ==}
+
+  lodash.isobject@2.3.0:
+    resolution: {integrity: sha512-jo1pfV61C4TE8BfEzqaHj6EIKiSkFANJrB6yscwuCJMSRw5tbqjk4Gv7nJzk4Z6nFKobZjGZ8Qd41vmnwgeQqQ==}
+
+  lodash.keys@2.3.0:
+    resolution: {integrity: sha512-c0UW0ffqMxSCtoVbmVt2lERJLkEqgoOn2ejPsWXzr0ZrqRbl3uruGgwHzhtqXxi6K/ei3Ey7zimOqSwXgzazPg==}
+
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
+
+  lodash.noop@2.3.0:
+    resolution: {integrity: sha512-NpSm8HRm1WkBBWHUveDukLF4Kfb5P5E3fjHc9Qre9A11nNubozLWD2wH3UBTZbu+KSuX8aSUvy9b+PUyEceJ8g==}
+
+  lodash.support@2.3.0:
+    resolution: {integrity: sha512-etc7VWbB0U3Iya8ixj2xy4sDBN3jvPX7ODi8iXtn4KkkjNpdngrdc7Vlt5jub/Vgqx6/dWtp7Ml9awhCQPYKGQ==}
 
   lodash@4.18.1:
     resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
@@ -3362,6 +3517,9 @@ packages:
     resolution: {integrity: sha512-mIrE/Cw9y+9Au6dS5vDKDhQza9YvG6w+ZrS6X+ZzA7yFW/soAeaups4Qzn1bL6g5FVy8WtP79+0j82oPIbqRjQ==}
     engines: {node: '>=18'}
 
+  normalize-svg-path@1.1.0:
+    resolution: {integrity: sha512-r9KHKG2UUeB5LoTouwDzBy2VxXlHsiM6fyLQvnJa0S5hrhzqElH/CH7TUGhT1fVvIYBIKf3OpY4YJ4CK+iaqHg==}
+
   nth-check@2.1.1:
     resolution: {integrity: sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w==}
 
@@ -3410,6 +3568,9 @@ packages:
   package-json-from-dist@1.0.1:
     resolution: {integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==}
 
+  pako@2.2.0:
+    resolution: {integrity: sha512-zJq6RP/5q+TO2OpFV3FHzlPnFjmkb7Nc99a5SNjJE+uu/PkpChs+NIZSSzbBoD+6kjiISXjfYdwj1ZRQ81dz/w==}
+
   papaparse@5.7.0:
     resolution: {integrity: sha512-qBGxg/7Q3Kl9Wfhrz2Z74UnvnHTXLNG6jmKJFeBvP2+y4lV7So+7SR62+Zd47JvdrCkX+nDcnr0ObPzek/+6RA==}
 
@@ -3419,6 +3580,9 @@ packages:
 
   parse-color@1.0.0:
     resolution: {integrity: sha512-fuDHYgFHJGbpGMgw9skY/bj3HL/Jrn4l/5rSspy00DoT4RyLnDcRvPxdZ+r6OFwIsgAuhDh4I09tAId4mI12bw==}
+
+  parse-svg-path@0.1.2:
+    resolution: {integrity: sha512-JyPSBnkTJ0AI8GGJLfMXvKq42cj5c006fnLz6fXy6zfoVjJizi8BNTpu8on8ziI1cKy9d9DGNuY17Ce7wuejpQ==}
 
   parsel-js@1.2.3:
     resolution: {integrity: sha512-kJHFmSNnujpusFfVEXjNaoJ09VYHF8Ih0aVUn7Clu+Ug8AFoA2wx7Ezh17JfW4+vhm/lauAd9A+//uFkmydZtQ==}
@@ -3454,6 +3618,9 @@ packages:
 
   pathe@1.1.2:
     resolution: {integrity: sha512-whLdWMYL2TwI08hn8/ZqAbrVemu0LNaNNJZX73O6qaIdCTfXutsLhMkjdENX0qhsQ9uIimo4/aQOmXkoon2nDQ==}
+
+  pathfinding@0.4.18:
+    resolution: {integrity: sha512-R0TGEQ9GRcFCDvAWlJAWC+KGJ9SLbW4c0nuZRcioVlXVTlw+F5RvXQ8SQgSqI9KXWC1ew95vgmIiyaWTlCe9Ag==}
 
   pathval@2.0.1:
     resolution: {integrity: sha512-//nshmD55c46FuFw26xV/xFAaB5HF9Xdap7HJBBnrKdAd6/GxDBaNA1870O79+9ueg61cZLSVc+OaFlfmObYVQ==}
@@ -3581,6 +3748,11 @@ packages:
     peerDependencies:
       react: 19.3.0
 
+  react-error-boundary@4.1.2:
+    resolution: {integrity: sha512-GQDxZ5Jd+Aq/qUxbCm1UtzmL/s++V7zKgE8yMktJiCQXCCFZnMZh9ng+6/Ne6PjNSXH0L9CjeOEREfRnq6Duag==}
+    peerDependencies:
+      react: 19.3.0
+
   react-reconciler@0.32.0:
     resolution: {integrity: sha512-2NPMOzgTlG0ZWdIf3qG+dcbLSoAc/uLfOwckc3ofy5sSK0pLJqnQLpUFxvGcN2rlXSjnVtGeeFLNimCQEj5gOQ==}
     engines: {node: '>=0.10.0'}
@@ -3627,6 +3799,9 @@ packages:
     resolution: {integrity: sha512-57frrGM/OCTLqLOAh0mhVA9VBMHd+9U7Zb2THMGdBUoZVOtGbJzjxsYGDJ3A9AYYCP4hn6y1TVbaOfzWtm5GFg==}
     engines: {node: '>= 12.13.0'}
 
+  rectilinear-router@1.0.1:
+    resolution: {integrity: sha512-3cLXo9A8/jK36nU5XRTC0V/9DLn0ORBaI02nYqGnoscazzo1xphyzzmQIJK8QjyNSBqoDAypkpOEP0khMMIPPw==}
+
   rename-keys@1.2.0:
     resolution: {integrity: sha512-U7XpAktpbSgHTRSNRrjKSrjYkZKuhUukfoBlXWXUExCAqhzh1TU3BDRAfJmarcl5voKS+pbKU9MvyLWKZ4UEEg==}
     engines: {node: '>= 0.8.0'}
@@ -3658,6 +3833,9 @@ packages:
     resolution: {integrity: sha512-l5eyksV4tPBj6lJyEa37YzIOCSOV7lkZzEHUdpjWZbtD7wTcFYmEYXSgm5bT4vV+dZLb9rBG1W9GROOG4NS4Ew==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
+
+  rsmt-ts@1.1.6:
+    resolution: {integrity: sha512-SKq3nla9/X4YUJX+DkInHbdZ/iEfVkGnpvP8zaF9/vv09vpHHmpiHv129zpKkVjVr7dML9lBGBdTok41Z3rQnQ==}
 
   s-expression@3.1.1:
     resolution: {integrity: sha512-VMsW7sIvixXfIDmDll7XCePMYYY52UlUtA7OlFQUovqj3XtQ2UkZkjjAvnSFW8o+SbswzUEeCBMmpAx9LS3qrg==}
@@ -3848,6 +4026,12 @@ packages:
   supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
+
+  svg-arc-to-cubic-bezier@3.2.0:
+    resolution: {integrity: sha512-djbJ/vZKZO+gPoSDThGNpKDO+o+bAeA4XQKovvkNCqnIS2t+S4qnLAGQhyyrulhCFRl1WWzAp0wUDV8PpTVU3g==}
+
+  svg-path-bounds@1.0.2:
+    resolution: {integrity: sha512-H4/uAgLWrppIC0kHsb2/dWUYSmb4GE5UqH06uqWBcg6LBjX2fu0A8+JrO2/FJPZiSsNOKZAhyFFgsLTdYUvSqQ==}
 
   svg-path-commander@2.3.3:
     resolution: {integrity: sha512-eeNMlh4JHxAG0820MwHM7A4UD3PRMFALNORZbEwCJx5O1Uhn2CWnLBNxHXWGdahiJVtSsG8VKoW+HzLtY73J/A==}
@@ -4722,6 +4906,8 @@ snapshots:
 
   '@jscad/modeling@2.13.0': {}
 
+  '@lume/kiwi@0.1.0': {}
+
   '@lume/kiwi@0.4.4': {}
 
   '@mongodb-js/saslprep@1.5.4':
@@ -4951,6 +5137,30 @@ snapshots:
   '@tscircuit/alphabet@0.0.25(typescript@5.9.3)':
     dependencies:
       typescript: 5.9.3
+
+  '@tscircuit/builder@1.11.7(@tscircuit/footprinter@0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3))(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/props@0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.24.1))(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(typescript@5.9.3)(zod@3.24.1)':
+    dependencies:
+      '@lume/kiwi': 0.1.0
+      '@tscircuit/footprinter': 0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3)
+      '@tscircuit/layout': 0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1)
+      '@tscircuit/props': 0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.24.1)
+      '@tscircuit/routing': 1.3.1(react@19.3.0)
+      '@tscircuit/schematic-autolayout': 0.0.5
+      '@tscircuit/soup': 0.0.73
+      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1)
+      circuit-json-to-gerber: 0.0.5(typescript@5.9.3)
+      convert-units: 2.3.4
+      fast-json-stable-stringify: 2.1.0
+      format-si-prefix: 0.3.2
+      papaparse: 5.7.0
+      rectilinear-router: 1.0.1
+      svg-path-bounds: 1.0.2
+      transformation-matrix: 2.16.1
+    transitivePeerDependencies:
+      - '@tscircuit/manual-edit-events'
+      - react
+      - typescript
+      - zod
 
   '@tscircuit/capacity-autorouter@0.0.718(typescript@5.9.3)':
     dependencies:
@@ -5261,7 +5471,20 @@ snapshots:
     dependencies:
       tscircuit: 0.0.2543(@tscircuit/schematic-corpus@0.0.114(typescript@5.9.3))(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(three@0.179.1)(typescript@5.9.3)
 
+  '@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1)':
+    dependencies:
+      '@tscircuit/manual-edit-events': 0.0.8
+      '@tscircuit/schematic-autolayout': 0.0.5
+      '@tscircuit/soup': 0.0.73
+      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1)
+      transformation-matrix: 2.16.1
+      zod: 3.24.1
+
   '@tscircuit/manifold-2d@0.0.6': {}
+
+  '@tscircuit/manual-edit-events@0.0.8':
+    dependencies:
+      zod: 3.24.1
 
   '@tscircuit/matchpack@0.0.95(typescript@5.9.3)':
     dependencies:
@@ -5309,6 +5532,17 @@ snapshots:
       spicets: 0.0.4(typescript@5.9.3)
       typescript: 5.9.3
 
+  '@tscircuit/parts-engine@0.0.32(typescript@5.9.3)':
+    dependencies:
+      typescript: 5.9.3
+
+  '@tscircuit/props@0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.24.1)':
+    dependencies:
+      '@tscircuit/layout': 0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1)
+      '@tscircuit/soup': 0.0.73
+      react: 19.3.0
+      zod: 3.24.1
+
   '@tscircuit/props@0.0.653(circuit-json@0.0.488(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.3.0)(zod@3.25.76)':
     dependencies:
       circuit-json: 0.0.488(format-si-unit@0.0.12(typescript@5.9.3))
@@ -5326,6 +5560,13 @@ snapshots:
       circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
       react: 19.3.0
       zod: 3.24.1
+
+  '@tscircuit/routing@1.3.1(react@19.3.0)':
+    dependencies:
+      pathfinding: 0.4.18
+      react-error-boundary: 4.1.2(react@19.3.0)
+    transitivePeerDependencies:
+      - react
 
   '@tscircuit/runframe@0.0.2722(524e2d841b25d569cc7731239264f320)':
     dependencies:
@@ -5357,6 +5598,14 @@ snapshots:
       - supports-color
       - typescript
       - zod
+
+  '@tscircuit/schematic-autolayout@0.0.5':
+    dependencies:
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      react-supergrid: 1.0.10(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(transformation-matrix@2.16.1)
+      transformation-matrix: 2.16.1
+      use-mouse-matrix-transform: 1.3.5(react@19.3.0)
 
   '@tscircuit/schematic-corpus@0.0.114(typescript@5.9.3)':
     dependencies:
@@ -5411,11 +5660,24 @@ snapshots:
       transformation-matrix: 2.16.1
       zod: 3.25.76
 
+  '@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1)':
+    dependencies:
+      circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
+      parsel-js: 1.2.3
+      transformation-matrix: 2.16.1
+      zod: 3.24.1
+
   '@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.24.1)':
     dependencies:
       circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
       parsel-js: 1.2.3
       transformation-matrix: 3.1.0
+      zod: 3.24.1
+
+  '@tscircuit/soup@0.0.73':
+    dependencies:
+      convert-units: 2.3.4
+      nanoid: 5.1.16
       zod: 3.24.1
 
   '@turbo/darwin-64@2.10.12':
@@ -5742,6 +6004,8 @@ snapshots:
     dependencies:
       event-target-shim: 5.0.1
 
+  abs-svg-path@0.1.1: {}
+
   accepts@1.3.8:
     dependencies:
       mime-types: 2.1.35
@@ -6023,6 +6287,11 @@ snapshots:
       tscircuit: 0.0.2543(@tscircuit/schematic-corpus@0.0.114(typescript@5.9.3))(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(three@0.179.1)(typescript@5.9.3)
       typescript: 5.9.3
 
+  circuit-json-to-gerber@0.0.5(typescript@5.9.3):
+    dependencies:
+      fast-json-stable-stringify: 2.1.0
+      typescript: 5.9.3
+
   circuit-json-to-gltf@0.0.125(@resvg/resvg-js@2.6.2)(@tscircuit/circuit-json-util@0.0.113(circuit-json@0.0.488(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/footprinter@0.0.426(circuit-json@0.0.488(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3))(circuit-json@0.0.488(format-si-unit@0.0.12(typescript@5.9.3)))(circuit-to-svg@0.0.416(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(typescript@5.9.3))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.179.1)(typescript@5.9.3):
     dependencies:
       '@jscad/modeling': 2.13.0
@@ -6129,6 +6398,8 @@ snapshots:
 
   comlink@4.4.2: {}
 
+  commander@12.1.0: {}
+
   commander@4.1.1: {}
 
   commondir@1.0.1: {}
@@ -6149,6 +6420,11 @@ snapshots:
   content-type@1.0.5: {}
 
   convert-source-map@2.0.0: {}
+
+  convert-units@2.3.4:
+    dependencies:
+      lodash.foreach: 2.3.0
+      lodash.keys: 2.3.0
 
   cookie-signature@1.0.7: {}
 
@@ -6294,6 +6570,13 @@ snapshots:
   earcut@3.2.3: {}
 
   eastasianwidth@0.2.0: {}
+
+  easyeda-converter@0.0.2(typescript@5.9.3):
+    dependencies:
+      commander: 12.1.0
+      transformation-matrix: 2.16.1
+      typescript: 5.9.3
+      zod: 3.24.1
 
   ee-first@1.1.1: {}
 
@@ -6712,6 +6995,10 @@ snapshots:
 
   globals@14.0.0: {}
 
+  glpk.js@4.0.2:
+    dependencies:
+      pako: 2.2.0
+
   gopd@1.2.0: {}
 
   graceful-fs@4.2.11: {}
@@ -6804,6 +7091,8 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
+  heap@0.2.5: {}
+
   html-escaper@2.0.2: {}
 
   http-errors@2.0.1:
@@ -6862,6 +7151,8 @@ snapshots:
   is-reference@1.2.1:
     dependencies:
       '@types/estree': 1.0.9
+
+  is-svg-path@1.0.2: {}
 
   is-unsafe@2.0.2: {}
 
@@ -6957,6 +7248,28 @@ snapshots:
 
   kicad-component-converter@0.1.41: {}
 
+  kicad-converter@0.0.17(tscircuit@0.0.2543(@tscircuit/schematic-corpus@0.0.114(typescript@5.9.3))(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(three@0.179.1)(typescript@5.9.3))(typescript@5.9.3)(zod@3.24.1):
+    dependencies:
+      tscircuit: 0.0.2543(@tscircuit/schematic-corpus@0.0.114(typescript@5.9.3))(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(three@0.179.1)(typescript@5.9.3)
+      typescript: 5.9.3
+      zod: 3.24.1
+
+  kicad-mod-converter@0.0.30(@tscircuit/footprinter@0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3))(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(typescript@5.9.3):
+    dependencies:
+      '@tscircuit/builder': 1.11.7(@tscircuit/footprinter@0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3))(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/props@0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.24.1))(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(typescript@5.9.3)(zod@3.24.1)
+      '@tscircuit/props': 0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.24.1)
+      prettier: 3.9.6
+      s-expression: 3.1.1
+      zod: 3.24.1
+    transitivePeerDependencies:
+      - '@tscircuit/footprinter'
+      - '@tscircuit/layout'
+      - '@tscircuit/manual-edit-events'
+      - '@tscircuit/soup'
+      - '@tscircuit/soup-util'
+      - react
+      - typescript
+
   kicad-to-circuit-json@0.0.117(typescript@5.9.3):
     dependencies:
       typescript: 5.9.3
@@ -6980,7 +7293,91 @@ snapshots:
     dependencies:
       p-locate: 5.0.0
 
+  lodash._basebind@2.3.0:
+    dependencies:
+      lodash._basecreate: 2.3.0
+      lodash._setbinddata: 2.3.0
+      lodash.isobject: 2.3.0
+
+  lodash._basecreate@2.3.0:
+    dependencies:
+      lodash._renative: 2.3.0
+      lodash.isobject: 2.3.0
+      lodash.noop: 2.3.0
+
+  lodash._basecreatecallback@2.3.0:
+    dependencies:
+      lodash._setbinddata: 2.3.0
+      lodash.bind: 2.3.0
+      lodash.identity: 2.3.0
+      lodash.support: 2.3.0
+
+  lodash._basecreatewrapper@2.3.0:
+    dependencies:
+      lodash._basecreate: 2.3.0
+      lodash._setbinddata: 2.3.0
+      lodash._slice: 2.3.0
+      lodash.isobject: 2.3.0
+
+  lodash._createwrapper@2.3.0:
+    dependencies:
+      lodash._basebind: 2.3.0
+      lodash._basecreatewrapper: 2.3.0
+      lodash.isfunction: 2.3.0
+
+  lodash._objecttypes@2.3.0: {}
+
+  lodash._renative@2.3.0: {}
+
+  lodash._setbinddata@2.3.0:
+    dependencies:
+      lodash._renative: 2.3.0
+      lodash.noop: 2.3.0
+
+  lodash._shimkeys@2.3.0:
+    dependencies:
+      lodash._objecttypes: 2.3.0
+
+  lodash._slice@2.3.0: {}
+
+  lodash.bind@2.3.0:
+    dependencies:
+      lodash._createwrapper: 2.3.0
+      lodash._renative: 2.3.0
+      lodash._slice: 2.3.0
+
+  lodash.foreach@2.3.0:
+    dependencies:
+      lodash._basecreatecallback: 2.3.0
+      lodash.forown: 2.3.0
+
+  lodash.forown@2.3.0:
+    dependencies:
+      lodash._basecreatecallback: 2.3.0
+      lodash._objecttypes: 2.3.0
+      lodash.keys: 2.3.0
+
+  lodash.identity@2.3.0: {}
+
+  lodash.isfunction@2.3.0: {}
+
+  lodash.isobject@2.3.0:
+    dependencies:
+      lodash._objecttypes: 2.3.0
+
+  lodash.keys@2.3.0:
+    dependencies:
+      lodash._renative: 2.3.0
+      lodash._shimkeys: 2.3.0
+      lodash.isobject: 2.3.0
+
   lodash.merge@4.6.2: {}
+
+  lodash.noop@2.3.0: {}
+
+  lodash.support@2.3.0:
+    dependencies:
+      lodash._renative: 2.3.0
 
   lodash@4.18.1: {}
 
@@ -7109,6 +7506,10 @@ snapshots:
 
   node-releases@2.0.55: {}
 
+  normalize-svg-path@1.1.0:
+    dependencies:
+      svg-arc-to-cubic-bezier: 3.2.0
+
   nth-check@2.1.1:
     dependencies:
       boolbase: 1.0.0
@@ -7152,6 +7553,8 @@ snapshots:
 
   package-json-from-dist@1.0.1: {}
 
+  pako@2.2.0: {}
+
   papaparse@5.7.0: {}
 
   parent-module@1.0.1:
@@ -7161,6 +7564,8 @@ snapshots:
   parse-color@1.0.0:
     dependencies:
       color-convert: 0.5.3
+
+  parse-svg-path@0.1.2: {}
 
   parsel-js@1.2.3: {}
 
@@ -7184,6 +7589,10 @@ snapshots:
   path-to-regexp@0.1.13: {}
 
   pathe@1.1.2: {}
+
+  pathfinding@0.4.18:
+    dependencies:
+      heap: 0.2.5
 
   pathval@2.0.1: {}
 
@@ -7327,6 +7736,11 @@ snapshots:
       react: 19.3.0
       scheduler: 0.28.0
 
+  react-error-boundary@4.1.2(react@19.3.0):
+    dependencies:
+      '@babel/runtime': 7.29.7
+      react: 19.3.0
+
   react-reconciler@0.32.0(react@19.3.0):
     dependencies:
       react: 19.3.0
@@ -7345,6 +7759,12 @@ snapshots:
     dependencies:
       '@remix-run/router': 1.23.4
       react: 19.3.0
+
+  react-supergrid@1.0.10(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(transformation-matrix@2.16.1):
+    dependencies:
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      transformation-matrix: 2.16.1
 
   react-supergrid@1.0.10(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(transformation-matrix@3.1.0):
     dependencies:
@@ -7369,6 +7789,11 @@ snapshots:
       string_decoder: 1.3.0
 
   real-require@0.2.0: {}
+
+  rectilinear-router@1.0.1:
+    dependencies:
+      lodash: 4.18.1
+      rsmt-ts: 1.1.6
 
   rename-keys@1.2.0: {}
 
@@ -7425,6 +7850,10 @@ snapshots:
       '@rollup/rollup-win32-x64-gnu': 4.63.2
       '@rollup/rollup-win32-x64-msvc': 4.63.2
       fsevents: 2.3.3
+
+  rsmt-ts@1.1.6:
+    dependencies:
+      glpk.js: 4.0.2
 
   s-expression@3.1.1: {}
 
@@ -7654,6 +8083,15 @@ snapshots:
       has-flag: 4.0.0
 
   supports-preserve-symlinks-flag@1.0.0: {}
+
+  svg-arc-to-cubic-bezier@3.2.0: {}
+
+  svg-path-bounds@1.0.2:
+    dependencies:
+      abs-svg-path: 0.1.1
+      is-svg-path: 1.0.2
+      normalize-svg-path: 1.1.0
+      parse-svg-path: 0.1.2
 
   svg-path-commander@2.3.3:
     dependencies:

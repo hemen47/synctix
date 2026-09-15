@@ -18,6 +18,9 @@ import type {
 } from "./types"
 import { T0_PARTS, getT0Part } from "./t0-catalog"
 import { searchParts, toSummary } from "./search"
+import { LcscSource } from "./lcsc-source"
+import { KicadLibrarySource } from "./kicad-source"
+import { DigiKeySource } from "./digikey-source"
 
 const log = getLogger("parts")
 
@@ -192,9 +195,31 @@ const valuePropFor = (ftype: string): { valueProp?: string; valueUnit?: string }
 }
 
 /** A registry with T0 registered — the default for any app that has not configured more. */
-export const createDefaultRegistry = (): PartsSourceRegistry => {
+/**
+ * The registry a deployment actually runs with.
+ *
+ * T0 is always present and needs nothing. The T2 sources register unconditionally and
+ * decide for themselves whether they are usable: LCSC unless it is switched off, KiCad if
+ * a library is checked out, DigiKey if it has credentials. A source that reports
+ * `disabled` is skipped during a federated search rather than being an error, which is
+ * why registering them all is safe — most installations will have exactly one key and the
+ * catalogue still has to work.
+ */
+export const createDefaultRegistry = (
+  options: { env?: NodeJS.ProcessEnv } = {},
+): PartsSourceRegistry => {
+  const env = options.env ?? process.env
   const registry = createRegistry()
+
   registry.register(t0Source)
+  registry.register(new LcscSource({ enabled: env["LCSC_ENABLED"] !== "false" }))
+  registry.register(
+    new KicadLibrarySource(
+      env["KICAD_FOOTPRINTS_PATH"] ? { footprintsPath: env["KICAD_FOOTPRINTS_PATH"] } : {},
+    ),
+  )
+  registry.register(new DigiKeySource())
+
   return registry
 }
 

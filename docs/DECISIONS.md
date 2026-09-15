@@ -569,3 +569,73 @@ tscircuit's supplier columns in when there are any.
 This is the "build only what tscircuit lacks" line (principle 1) falling in its usual
 place: not a whole format, a missing column. Wrapping the package and shipping an empty
 file would have been more faithful to the letter of the principle and useless.
+
+---
+
+## ADR-0022 — `@tscircuit/parts-engine`, not `easyeda-converter`
+
+**Status:** accepted · 2026-09-15 · resolves open question 1 · refines ADR-0010
+
+**Context.** The v2 plan and ADR-0010 both named `easyeda-converter` for the LCSC import.
+ADR-0005 flagged its version — 0.0.2 — as suspicious and said to verify before M7. It does
+not survive verification:
+
+- It is built against **`@tscircuit/soup`** and **`@tscircuit/builder`**, the packages
+  renamed to `circuit-json` long ago. Its own source imports `any_source_component` from
+  `@tscircuit/soup`.
+- Its two exported functions **do not compose**. `fetchEasyEDAComponent` returns
+  `{ success, code, result }`; `convertEasyEdaJsonToTscircuitSoupJson` reads `.dataStr`
+  off its argument, so passing the first's output to the second throws
+  `Cannot read properties of undefined (reading 'dataStr')`.
+- Passing `result` by hand does not fix it: on C6186 it produces **two** elements — a
+  component and a `pcb_component` — with no pads, no ports and no 3D model.
+
+**Decision.** Use `@tscircuit/parts-engine@0.0.32`, which bundles maintained copies of
+both functions and is what tscircuit itself calls. Its real method is
+`fetchPartCircuitJson({ supplierPartNumber, manufacturerPartNumber, platformFetch })` — not
+the shape the name suggests; passing anything else returns `undefined` silently.
+
+Measured on C6186 (AMS1117-3.3) it returns **13 elements**: the source component, four
+source ports, four SMT pads, a silkscreen path, a courtyard outline, and a `cad_component`
+carrying `model_obj_url` and `model_step_url`. Symbol, footprint and 3D — M7's criterion,
+from one call.
+
+Search stays on `jlcsearch.tscircuit.com` (ADR-0010), which returns structured rows with
+package, stock and JLC basic-part status. The two are separate because search has to be
+fast and fetch has to be complete.
+
+**Consequences.**
+
+- `easyeda-converter` is not a dependency of anything. It is still declared in
+  `packages/parts` so the comparison above stays reproducible; drop it at the next
+  cleanup if nothing else has grown a use for it.
+- The EasyEDA footprint is marked `verified` — it is the package drawing JLC assembles
+  against, which is as verified as a footprint gets without measuring a part.
+- **Pin names come back generic** for some parts: C6186 yields `pin1`–`pin4` rather than
+  `GND`/`VOUT`/`VIN`, because that is what EasyEDA's symbol carries. A part imported this
+  way is wired by number unless the user renames the pins. T0 is still the better source
+  for a part it covers, which is why it keeps a higher priority in the registry.
+- EasyEDA's library terms are not an open licence, and are recorded per part so the BOM
+  can surface them (principle 9).
+
+---
+
+## ADR-0023 — KiCad libraries are the only source with no key and no network
+
+**Status:** accepted · 2026-09-15 · resolves open question 3
+
+`kicad-mod-converter@0.0.30` parses a `.kicad_mod` file straight to circuit-json with
+`parseKicadModToTscircuitSoup(text)`. Since kicad-footprints is a git checkout of plain
+files, `KicadLibrarySource` needs no credentials, no API and no rate limit — the only
+parts source with none of those.
+
+**On the licence,** which open question 3 asked us to confirm. kicad-footprints is
+CC-BY-SA 4.0 **with a library exception**: using a footprint in a design does not make the
+design a derivative work. Without that exception the licence would make every board drawn
+with these footprints share-alike, and the source would not be usable here at all. The
+exact wording is recorded on every part this source produces rather than assumed once, so
+a BOM can carry it.
+
+**Consequence.** The source reports `disabled` with a message naming `make kicad-libs`
+when no checkout is present, which is the normal state — the library is ~15k files and not
+something to vendor.
