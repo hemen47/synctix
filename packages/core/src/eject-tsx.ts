@@ -148,7 +148,7 @@ const emitComponent = (
     }
   }
 
-  const footprint = footprintString(component)
+  const footprint = footprintString(design, component)
   if (footprint) {
     props.push(`footprint="${footprint}"`)
   } else if (view.portsByComponent.get(component.source_component_id)?.length) {
@@ -173,12 +173,16 @@ const emitComponent = (
  * from. A footprint that arrived as pcb elements (from a KiCad module, say) has no such
  * string, and inventing one would be worse than omitting it.
  */
-const footprintString = (component: SourceComponent): string | undefined => {
+const footprintString = (design: Design, component: SourceComponent): string | undefined => {
+  // The sidecar first: circuit-json strips an unknown prop, so a footprint given to
+  // `add_component` lives in `meta.footprinterString` and nowhere else.
+  const fromMeta = design.meta[component.source_component_id]?.footprinterString
+  if (fromMeta) return fromMeta
+
   const record = component as unknown as Record<string, unknown>
   const declared = record["footprinter_string"] ?? record["footprint"]
-  // A part reference in the sidecar may well name a footprint, but resolving it needs
-  // @syntrix/parts, which core does not depend on (the dependency runs the other way).
-  // The exporter, which has both, fills that gap.
+  // A part reference may also name a footprint, but resolving it needs @syntrix/parts,
+  // which core does not depend on. The exporter, which has both, fills that gap.
   return typeof declared === "string" ? declared : undefined
 }
 

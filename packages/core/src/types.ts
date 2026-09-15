@@ -48,6 +48,16 @@ export interface MetaEntry {
   notes?: string[]
   /** Footprint trust, surfaced in BOM and enforced by agent house rules. */
   footprintVerification?: "verified" | "unverified"
+  /**
+   * The footprint, as a `@tscircuit/footprinter` string ("0402", "sot223", "soic8").
+   *
+   * In the sidecar because circuit-json has nowhere else for it: `source_component` has
+   * no footprint field, and its schema strips unknown keys, so a footprint passed as a
+   * prop vanishes silently — the component validates, and the board later comes out with
+   * no pads. Geometry proper lives in `pcb_*` elements; this is the *intent* that
+   * produces them, which is ours to keep.
+   */
+  footprinterString?: string
 }
 
 export type PlacementConstraint =

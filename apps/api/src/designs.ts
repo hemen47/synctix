@@ -138,6 +138,88 @@ export const createDesignsRouter = (store: DesignStore): Router => {
     })
   })
 
+  /**
+   * Route the board.
+   *
+   * Separate from `/layout`, and slower: this runs tscircuit's autorouter, which does real
+   * work. The result replaces the design's board layer through a normal operation, so it
+   * lands in the log and is undoable like any other change.
+   */
+  router.post("/designs/:id/route", async (req: Request, res: Response) => {
+    const found = await store.get(req.params["id"]!)
+    if (!found) return notFound(res, req.params["id"]!)
+
+    // Imported here rather than at module load: @syntrix/core/tsx pulls in the whole
+    // tscircuit render stack, and an api that never routes a board should not pay for it.
+    const { routePcb, routingFailed } = await import("@syntrix/core/tsx")
+
+    const routed = await routePcb(found.design, req.body?.board ? { board: req.body.board } : {})
+    if (!routed.ok) return fromValidation(res, routed.error)
+
+    const merged = await store.submit(
+      req.params["id"]!,
+      {
+        type: "merge_circuit_json",
+        elements: routed.value.elements,
+        strategy: "append_only",
+      },
+      { actor: { kind: "system" } },
+    )
+    if (!merged.ok) return fromValidation(res, merged.error)
+
+    res.json({
+      ...merged.value.record,
+      traceCount: routed.value.traceCount,
+      padCount: routed.value.padCount,
+      // tscircuit reports a bad route as an element rather than by failing (ADR-0017), so
+      // a caller that only checked the status would ship an unrouted board.
+      routingFailed: routingFailed(routed.value),
+      diagnostics: routed.value.diagnostics,
+    })
+  })
+
+  /** Export a design in any registered format. */
+  router.post("/designs/:id/export/:format", async (req: Request, res: Response) => {
+    const found = await store.get(req.params["id"]!)
+    if (!found) return notFound(res, req.params["id"]!)
+
+    const { createExporterRegistry, tscircuitExporters, ltspiceExporter } =
+      await import("@syntrix/export")
+    const registry = createExporterRegistry([...tscircuitExporters, ltspiceExporter])
+
+    const exporter = registry.get(req.params["format"]!)
+    if (!exporter) {
+      return res
+        .status(404)
+        .type("application/problem+json")
+        .json(
+          toProblemDetails(404, "Unknown export format", [
+            validationError(
+              "EXPORTER_NOT_FOUND",
+              `No exporter called "${req.params["format"]}".`,
+              `Available: ${registry
+                .list()
+                .map((e) => e.id)
+                .join(", ")}`,
+            ),
+          ]),
+        )
+    }
+
+    const result = await exporter.export(found.design, { options: req.body ?? {} })
+    if (!result.ok) return fromValidation(res, result.error)
+
+    res.json({
+      format: exporter.id,
+      artifacts: result.value.map((artifact) => ({
+        filename: artifact.filename,
+        mime: artifact.mime,
+        text: artifact.text,
+        bytes: artifact.bytes ? Buffer.from(artifact.bytes).toString("base64") : undefined,
+      })),
+    })
+  })
+
   router.get("/designs/:id/erc", async (req: Request, res: Response) => {
     const found = await store.get(req.params["id"]!)
     if (!found) return notFound(res, req.params["id"]!)

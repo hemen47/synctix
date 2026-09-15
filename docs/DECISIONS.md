@@ -679,3 +679,26 @@ with no session:
 - **Tool descriptions carry their own context.** Our agent reads the house rules in its
   system prompt; an MCP client has no prompt from us, so "connect two pins" has to also
   say that power and ground belong on named nets.
+
+---
+
+## ADR-0026 — A footprint lives in the sidecar, because circuit-json has nowhere for it
+
+**Status:** accepted · 2026-09-15
+
+**Context.** `add_component` with `props: { footprint: "0402" }` appeared to work: the
+operation succeeded and the component validated. The footprint was gone. `source_component`
+has no footprint field and its zod schema strips unknown keys, so the prop vanished
+without a word — and the failure surfaced two milestones later as a routed board with four
+pads missing and no copper.
+
+**Decision.** `MetaEntry.footprinterString` holds it. The sidecar is exactly the right
+place: circuit-json models footprint _geometry_ as `pcb_*` elements, and what a user
+supplies is the _intent_ that produces them, which the spec does not model at all
+(principle 3). `ejectToTsx` reads it, which is what puts `footprint="0402"` back into the
+TSX that the router evaluates.
+
+**Consequence.** `routePcb` now fails loudly when a design routes to zero pads, naming the
+components that were exported without a footprint. A board with no copper that exports
+clean Gerbers is the single most expensive failure this project can produce, and it should
+not be possible to reach it quietly.

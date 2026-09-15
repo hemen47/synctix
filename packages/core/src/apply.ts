@@ -188,10 +188,23 @@ const reduce = (
       const newElements = [created.value.component, ...created.value.ports]
       const ids = newElements.map(elementId).filter((id): id is string => Boolean(id))
 
+      // circuit-json drops an unknown prop silently, so a footprint has to be kept in
+      // the sidecar or it is simply lost (see MetaEntry.footprinterString).
+      const footprint = operation.props?.["footprint"]
+      const footprintMeta = typeof footprint === "string" ? { footprinterString: footprint } : {}
+
       return ok({
         ...design,
         circuit: [...design.circuit, ...newElements],
-        meta: withMeta(design, ids, operation.partRef ? { partRef: operation.partRef } : {}, ctx),
+        meta: withMeta(
+          design,
+          ids,
+          {
+            ...(operation.partRef ? { partRef: operation.partRef } : {}),
+            ...footprintMeta,
+          },
+          ctx,
+        ),
       })
     }
 
