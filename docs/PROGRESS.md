@@ -8,23 +8,30 @@
 
 ## Current task
 
-**CHECKPOINT B** — M6 is complete; the agent eval and provider-switch results are
-summarised below. M7 (parts T2) is next.
+**All milestones complete.** M0' through M9 are done; 484 unit tests and 9 Playwright
+tests pass. `docs/DEVELOPMENT.md` is the starting point for running it.
 
-M0' through M6 are complete except four deferrals, none of them blocking: M0's live
-`docker compose up` (the Docker daemon is not running on this machine), M4's
-runframe-backed PCB/3D tabs (M9, when there is PCB data worth viewing), M5's `kicad-cli`
-ERC check (needs the `kicad` profile), and M5's op-amp gain figure (M6's parts path). See
-**Blocked**.
+Four things are deferred rather than done, none of them blocking, each recorded against
+its milestone below and in `docs/ACCEPTANCE.md`:
 
-## Next 3 tasks
+1. **The live Docker stack** has never run — the daemon is not available on this machine.
+   Compose renders exactly three required services and all four profiles cleanly, and
+   both servers run fine outside containers.
+2. **`kicad-cli` ERC and DRC** need the `kicad` compose profile, so they need the daemon
+   too. The exports themselves are verified.
+3. **The PCB tab is not editable in the browser.** The operation it needs exists and the
+   routing tests drive it; the React view lands with the runframe viewer.
+4. **The live-provider agent eval** needs an API key this machine does not have. The
+   suite is written to run against a real model behind `SYNTRIX_EVAL_LIVE=1`.
 
-1. M7: `LcscEasyEdaSource` over `@tscircuit/parts-engine` and the jlcsearch HTTP endpoint
-   (ADR-0010), with `easyeda-converter@0.0.2` verified first (open question 1).
-2. M7: `KicadLibrarySource` over `kicad-converter` / `kicad-mod-converter`, and the
-   DigiKey adapter, which must report `disabled` without keys rather than failing.
-3. M8: MCP over the same tool definitions the agent uses — `/mcp` Streamable HTTP in the
-   api process plus the stdio entry point.
+## Next, when work resumes
+
+1. Bring up the Docker stack and close items 1 and 2 above with the scripts in
+   `ACCEPTANCE.md`.
+2. The PCB tab: `@tscircuit/runframe` for the read-only 3D view, and the SVG canvas
+   already built here, switched to `layer: "pcb"` placements.
+3. Watch `circuit-json` for zod 4 types — three packages are pinned below their latest
+   release because of ADR-0002, and they all unpin together.
 
 ## Roadmap v2
 
