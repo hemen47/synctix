@@ -7,7 +7,9 @@
  *
  * v2 has only four required services, and the api's own HTTP dependencies are both
  * optional compose profiles: an unconfigured URL means that profile is not running, which
- * is a deliberate choice ("disabled"), not a fault.
+ * is a deliberate choice ("disabled"), not a fault. A *configured* one that does not
+ * answer is a fault, but an optional one — see `rollUp` for why that distinction decides
+ * the status code.
  */
 
 import type { Request, Response } from "express"
@@ -19,6 +21,11 @@ export interface DependencyHealth {
   status: DependencyStatus
   latencyMs?: number
   detail?: string
+  /**
+   * Carried through from the probe spec. Without it `rollUp` cannot tell an optional
+   * profile from a dependency we cannot serve without, and treats both as fatal.
+   */
+  optional?: boolean
 }
 
 export interface HealthReport {
@@ -44,9 +51,11 @@ const PROBE_TIMEOUT_MS = 3000
  * dependency is unreachable tells you nothing you could not already see.
  */
 export const probeHttp = async (spec: ProbeSpec): Promise<DependencyHealth> => {
+  const base = { name: spec.name, optional: spec.optional }
+
   if (!spec.url) {
     return {
-      name: spec.name,
+      ...base,
       status: spec.optional ? "disabled" : "unknown",
       detail: "no URL configured",
     }
@@ -60,8 +69,8 @@ export const probeHttp = async (spec: ProbeSpec): Promise<DependencyHealth> => {
     const res = await fetch(spec.url, { signal: controller.signal })
     const latencyMs = Date.now() - started
     return res.ok
-      ? { name: spec.name, status: "up", latencyMs }
-      : { name: spec.name, status: "down", latencyMs, detail: `HTTP ${res.status}` }
+      ? { ...base, status: "up", latencyMs }
+      : { ...base, status: "down", latencyMs, detail: `HTTP ${res.status}` }
   } catch (cause) {
     const detail =
       cause instanceof Error && cause.name === "AbortError"
@@ -69,7 +78,7 @@ export const probeHttp = async (spec: ProbeSpec): Promise<DependencyHealth> => {
         : cause instanceof Error
           ? cause.message
           : "unreachable"
-    return { name: spec.name, status: "down", latencyMs: Date.now() - started, detail }
+    return { ...base, status: "down", latencyMs: Date.now() - started, detail }
   } finally {
     clearTimeout(timer)
   }
@@ -90,7 +99,14 @@ const joinUrl = (base: string | undefined, path: string): string | undefined =>
  * Roll per-dependency results into one status.
  *
  * A single down dependency is *degraded*, not down — the API still serves designs when
- * KiCad export is unavailable. Only a stack with nothing reachable is down.
+ * KiCad export is unavailable. Only a stack whose *required* dependencies are all
+ * unreachable is down, because only then can we not serve at all.
+ *
+ * An optional profile never takes the stack down, however many of them are wedged. This
+ * endpoint backs a container healthcheck, so "down" restarts the process: letting the
+ * `kicad` and `search` profiles go away together and restart a working API would be exactly
+ * the failure the 503 is meant to prevent. They degrade, and an operator reads which one
+ * from `dependencies`.
  *
  * `unknown` also counts as degraded. A required dependency with no URL configured means
  * we cannot vouch for it, and a health endpoint that answers "ok" while knowing nothing
@@ -99,10 +115,10 @@ const joinUrl = (base: string | undefined, path: string): string | undefined =>
  */
 export const rollUp = (deps: DependencyHealth[]): HealthReport["status"] => {
   const relevant = deps.filter((d) => d.status !== "disabled")
-  const downs = relevant.filter((d) => d.status === "down")
+  const required = relevant.filter((d) => !d.optional)
 
-  if (relevant.length > 0 && downs.length === relevant.length) return "down"
-  if (downs.length > 0) return "degraded"
+  if (required.length > 0 && required.every((d) => d.status === "down")) return "down"
+  if (relevant.some((d) => d.status === "down")) return "degraded"
   return relevant.some((d) => d.status === "unknown") ? "degraded" : "ok"
 }
 

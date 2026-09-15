@@ -4,12 +4,18 @@
 > Resume from **Current task**. Never redo completed work. Update after every completed
 > task and before every commit.
 
-**Last updated:** 2026-09-14 · **Architecture:** v2 (see `docs/MIGRATION_V2.md`)
+**Last updated:** 2026-09-15 · **Architecture:** v2 (see `docs/MIGRATION_V2.md`)
 
 ## Current task
 
-**All milestones complete.** M0' through M9 are done; 484 unit tests and 9 Playwright
+**All milestones complete.** M0' through M9 are done; 486 unit tests and 9 Playwright
 tests pass. `docs/DEVELOPMENT.md` is the starting point for running it.
+
+One fix since: `GET /health` returned **503** under `pnpm dev` on the host, because a
+`.env` carrying the compose hostnames made both optional profile probes fail and
+`rollUp` counted an optional dependency as fatal. Optional deps now degrade and never
+down the stack (ADR-0027). Host dev reports `200 degraded`, naming `kicad` and
+`meilisearch`.
 
 Four things are deferred rather than done, none of them blocking, each recorded against
 its milestone below and in `docs/ACCEPTANCE.md`:
@@ -50,7 +56,7 @@ its milestone below and in `docs/ACCEPTANCE.md`:
         FREEROUTING/PYTOOLS/MCP_PORT, with profile vars moved to an opt-in section
   - [x] Makefile gains `PROFILES=`; the health-check script takes `--profiles`
   - [x] api health probes reduced to the two optional profile services, so a bare stack
-        reports `ok` rather than `degraded` (21 tests)
+        reports `ok` rather than `degraded` (23 tests; see ADR-0027)
   - [x] CI builds the api and web images instead of the deleted service images
   - [x] ADR-0009 … ADR-0013 recorded; ARCHITECTURE, ROADMAP, ACCEPTANCE, README updated
   - [x] all tests green: 234 across shared, core, parts, layout and api

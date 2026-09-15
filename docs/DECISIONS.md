@@ -702,3 +702,40 @@ TSX that the router evaluates.
 components that were exported without a footprint. A board with no copper that exports
 clean Gerbers is the single most expensive failure this project can produce, and it should
 not be possible to reach it quietly.
+
+---
+
+## ADR-0027 — Only a required dependency can take `/health` down
+
+**Status:** accepted · 2026-09-15
+
+**Context.** `pnpm dev` on the host, against a `.env` copied from the compose example,
+answered `GET /health` with **503**. Both of the api's HTTP dependencies — `kicad` and
+`meilisearch` — are opt-in compose profiles, and the `.env` still pointed them at the
+compose hostnames (`http://kicad:3019`), which do not resolve outside Docker. Both probes
+reported `down`, and `rollUp`'s rule — every non-disabled dependency down means the stack
+is down — returned `down`.
+
+The status code was wrong in both directions. The same stack with those two variables
+_unset_ reports `ok` (the probes read `disabled`), so merely naming a profile you are not
+running made a healthy API report that it was not serving. And because `buildProbeSpecs`
+returns _only_ optional deps, `down` was reachable **exclusively** through optional
+profiles: the `kicad` and `search` containers restarting together would have failed the
+api's own container healthcheck and restarted a process that was serving designs fine —
+precisely the outcome the 503/degraded split exists to prevent.
+
+The cause was a dropped field. `ProbeSpec.optional` was never copied onto the
+`DependencyHealth` that `probeHttp` returns, so `rollUp` could not tell a profile from a
+dependency we cannot serve without, and treated every fault as fatal.
+
+**Decision.** `DependencyHealth` carries `optional`, and `rollUp` reports `down` only when
+there is at least one **required** non-disabled dependency and all of them are down. An
+optional dependency degrades the report and never changes the status code. `unknown` and
+`disabled` keep their existing meanings.
+
+**Consequence.** With today's wiring the api has no required HTTP dependency, so `/health`
+cannot return 503 at all — correctly, since `/live` is what liveness actually turns on.
+The 503 becomes reachable again when Mongo is wired through `createHealthHandler`'s
+`extraProbes` hook, which is the dependency whose absence genuinely means "not serving".
+Host dev now reports `200 degraded` with `kicad` and `meilisearch` named as down, which is
+the honest answer: those URLs are configured and unreachable.

@@ -22,11 +22,31 @@ describe("rollUp", () => {
     ).toBe("degraded")
   })
 
-  it("reports down only when every dependency is down", () => {
+  it("reports down only when every required dependency is down", () => {
     expect(
       rollUp([
         { name: "a", status: "down" },
         { name: "b", status: "down" },
+      ]),
+    ).toBe("down")
+  })
+
+  it("never reports down for optional dependencies alone", () => {
+    // /health backs a container healthcheck. Both compose profiles going down at once is
+    // not a reason to restart an API that is still serving designs.
+    expect(
+      rollUp([
+        { name: "kicad", status: "down", optional: true },
+        { name: "meilisearch", status: "down", optional: true },
+      ]),
+    ).toBe("degraded")
+  })
+
+  it("reports down when the required dependency is down beside a healthy profile", () => {
+    expect(
+      rollUp([
+        { name: "mongo", status: "down" },
+        { name: "kicad", status: "up", optional: true },
       ]),
     ).toBe("down")
   })
@@ -168,7 +188,11 @@ describe("GET /health", () => {
     await request(app).get("/api/health").expect(200)
   })
 
-  it("returns 503 only when every dependency is down", async () => {
+  it("stays 200 and degraded when every optional profile is configured but unreachable", async () => {
+    // The api has no *required* HTTP dependency, so no arrangement of these two probes
+    // can 503. Running `pnpm dev` on the host against a .env that still points at the
+    // compose hostnames put both profiles here, and a 503 said the API was not serving
+    // when it was serving fine.
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {
@@ -178,8 +202,12 @@ describe("GET /health", () => {
     const app = createApp({ version: "0.1.0", startedAt: Date.now(), env: fullEnv })
 
     const res = await request(app).get("/health")
-    expect(res.status).toBe(503)
-    expect(res.body.status).toBe("down")
+    expect(res.status).toBe(200)
+    expect(res.body.status).toBe("degraded")
+    expect(res.body.dependencies.map((d: { name: string }) => d.name)).toEqual([
+      "kicad",
+      "meilisearch",
+    ])
   })
 
   it("stays 200 but degraded when only some dependencies are down", async () => {
