@@ -43,11 +43,11 @@ services:
       - /app/node_modules
       - /app/apps/api/node_modules
 
+  # --- profile services -------------------------------------------------------
   mongo:
     ports:
       - "27017:27017"
 
-  # --- profile services -------------------------------------------------------
   kicad:
     ports:
       - "${KICAD_PORT:-3019}:3019"

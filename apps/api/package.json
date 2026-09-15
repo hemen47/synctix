@@ -5,9 +5,9 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
+    "start": "node --env-file-if-exists=../../.env dist/index.js",
     "test": "vitest --passWithNoTests",
     "test:run": "vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -20,6 +20,7 @@
     "@syntrix/shared": "workspace:*",
     "cors": "^2.8.5",
     "express": "^4.21.2",
+    "mongodb": "^7.6.0",
     "pino": "^9.5.0",
     "pino-http": "^10.3.0",
     "zod": "3.24.1"

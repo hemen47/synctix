@@ -82,11 +82,11 @@ in DECISIONS.md — check there before re-deriving.
 
 Docker Compose, Caddy public entry on **port 3015**:
 
-- **Required (4):** `proxy` (Caddy :3015 → web, `/api`, `/mcp`), `web` (nginx static,
-  :3016), `api` (Express + MCP, :3017), `mongo`.
-- **Optional profiles:** `kicad` (kicad/kicad:9.0 + FastAPI wrapper over `kicad-cli`,
-  :3019), `indexing` (redis + BullMQ worker for large parts ingestion), `search`
-  (meilisearch :7700).
+- **Required (3):** `proxy` (Caddy :3015 → web, `/api`, `/mcp`), `web` (nginx static,
+  :3016), `api` (Express + MCP, :3017).
+- **Optional profiles:** `mongo` (only if you want the database in a container), `kicad`
+  (kicad/kicad:9.0 + FastAPI wrapper over `kicad-cli`, :3019), `indexing` (redis + BullMQ
+  worker for large parts ingestion), `search` (meilisearch :7700).
 
 ## Conventions
 
@@ -107,13 +107,21 @@ Docker Compose, Caddy public entry on **port 3015**:
 
 ```bash
 pnpm install
+pnpm dev              # web on :3016, api on :3017 — no Docker needed
 pnpm build            # turbo build all packages
 pnpm test             # vitest across the workspace
 pnpm typecheck
 pnpm lint
-make dev              # docker compose dev stack (web on :3015)
-make dev PROFILES=kicad   # add an optional profile
+pnpm e2e              # playwright; starts its own servers
+
+make dev                    # docker compose stack (web on :3015)
+make dev PROFILES=mongo      # add a containerised MongoDB
 ```
+
+MongoDB is **not** a container by default — it runs on the host in development and is
+Atlas in production. `docs/DEVELOPMENT.md` has the detail, including two traps worth
+knowing: a database name containing `/` connects and then fails every query, and a
+`mongodb+srv://` URL needs a DNS resolver that answers (`MONGO_DNS_SERVERS`).
 
 ## Working agreement
 

@@ -1,12 +1,18 @@
 # Production-shaped stack. Caddy is the only published entry point; everything else is
 # reachable only on the internal network.
 #
-# Four required services — proxy, web, api, mongo. Everything else is an opt-in profile
+# Three required services — proxy, web, api. Everything else is an opt-in profile
 # (v2 principle 10):
 #
+#   docker compose --profile mongo    up -d   # MongoDB in a container
 #   docker compose --profile kicad    up -d   # kicad-cli ERC/DRC/export wrapper
 #   docker compose --profile indexing up -d   # redis + BullMQ worker for bulk ingestion
 #   docker compose --profile search   up -d   # meilisearch parts index
+#
+# MongoDB is a profile because most people already have one: on a dev machine it is
+# usually installed on the host, and in production it is usually Atlas. Running a
+# container for it by default would mean a second, empty database competing for the same
+# port as the one you are already using.
 #
 # Dev overrides (bind mounts, hot reload, published ports for debugging) live in
 # docker-compose.dev.yml — see the Makefile.
@@ -16,7 +22,11 @@ name: syntrix
 x-node-env: &node-env
   NODE_ENV: ${NODE_ENV:-production}
   LOG_LEVEL: ${LOG_LEVEL:-info}
-  MONGO_URL: ${MONGO_URL:-mongodb://mongo:27017/syntrix}
+  # host.docker.internal reaches a MongoDB running on the host from inside the container,
+  # which is the common case. Point this at Atlas in production, or at mongo:27017 with
+  # the `mongo` profile enabled.
+  MONGO_URL: ${MONGO_URL:-mongodb://host.docker.internal:27017/vikronix_syntrix}
+  MONGO_DNS_SERVERS: ${MONGO_DNS_SERVERS:-}
   ARTIFACTS_DIR: ${ARTIFACTS_DIR:-/data/artifacts}
   SYNTRIX_API_KEY: ${SYNTRIX_API_KEY:?SYNTRIX_API_KEY is required}
   PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:3015}
@@ -96,8 +106,9 @@ services:
     expose: ["3017"]
     volumes:
       - ./data/artifacts:/data/artifacts
-    depends_on:
-      mongo: { condition: service_healthy }
+    # Reaches a MongoDB on the host. Harmless on Linux, where it is not automatic.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test:
         [
@@ -111,8 +122,11 @@ services:
       retries: 5
       start_period: 20s
 
-  # ------------------------------------------------------------- required (data)
+  # ------------------------------------------------------------- profile: mongo
+  # Only if you want the database in a container. Set
+  # MONGO_URL=mongodb://mongo:27017/vikronix_syntrix to use it.
   mongo:
+    profiles: ["mongo"]
     image: mongo:7
     <<: *restart
     volumes:

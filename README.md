@@ -25,25 +25,24 @@ tools, a curated parts library, ELK schematic layout, and an LTspice exporter.
 
 ## Quick start
 
+No Docker needed. You need Node 20+, pnpm, and a MongoDB (or none — see below).
+
 ```bash
 pnpm install
-make env        # writes .env — fill in SYNTRIX_API_KEY and MCP_BEARER_TOKEN
-make dev        # four services; web on http://localhost:3015
-make health     # probe them
+make env        # writes .env — check MONGO_URL, fill in SYNTRIX_API_KEY
+pnpm dev        # web on http://localhost:3016, api on :3017
 ```
 
-Optional extras are compose profiles, off by default:
+Unset `MONGO_URL` to run with an in-memory store and no database at all.
+
+Full detail, including the Atlas DNS caveat and what to do about a
+`3221226505` crash on Windows, is in **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**.
+
+With Docker, for something closer to production:
 
 ```bash
-make dev PROFILES=kicad        # kicad-cli ERC, DRC and export
-make dev PROFILES="indexing search"
-```
-
-Without Docker, for engine work alone:
-
-```bash
-pnpm -r test:run
-pnpm -r typecheck
+make dev                   # proxy, web, api — http://localhost:3015
+make dev PROFILES=mongo    # add a containerised database
 ```
 
 ## Layout
@@ -60,6 +59,7 @@ docs/      architecture, decisions, progress, acceptance, migration
 | Document                                     | What it covers                                       |
 | -------------------------------------------- | ---------------------------------------------------- |
 | [CLAUDE.md](CLAUDE.md)                       | Project rules, conventions, how to run and test      |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)   | Running it locally, MongoDB setup, troubleshooting   |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the system fits together and why                 |
 | [docs/ROADMAP.md](docs/ROADMAP.md)           | Milestones M0'–M9 with exit criteria                 |
 | [docs/PROGRESS.md](docs/PROGRESS.md)         | Current state — read this first                      |
