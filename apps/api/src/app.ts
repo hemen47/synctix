@@ -10,6 +10,7 @@ import { t0Resolver } from "@syntrix/parts"
 import { createHealthHandler, livenessHandler } from "./health"
 import { createDesignsRouter } from "./designs"
 import { createPartsRouter } from "./parts"
+import { createMcpRouter } from "./mcp-routes"
 import { MemoryDesignStore, type DesignStore } from "./store"
 
 export interface AppOptions {
@@ -17,6 +18,12 @@ export interface AppOptions {
   startedAt: number
   /** Requests must carry this in `x-api-key`. Auth is skipped when unset (dev only). */
   apiKey?: string
+  /**
+   * Bearer token for `/mcp`. Separate from the REST key on purpose: an MCP client is a
+   * different kind of caller with a different lifetime, and revoking one should not log
+   * out the other.
+   */
+  mcpBearerToken?: string
   publicOrigin?: string
   /** Overridable so tests can drive the dependency probes deterministically. */
   env?: NodeJS.ProcessEnv
@@ -58,6 +65,16 @@ export const createApp = (opts: AppOptions): Express => {
   const store = opts.store ?? new MemoryDesignStore({ resolvePart: t0Resolver })
   app.use("/api", createDesignsRouter(store))
   app.use("/api", createPartsRouter())
+
+  // MCP is mounted outside /api: it has its own transport, its own auth and its own path,
+  // which is also what Caddy routes on (v2 principle 10 — one process, not one prefix).
+  app.use(
+    createMcpRouter({
+      store,
+      ...(opts.mcpBearerToken ? { bearerToken: opts.mcpBearerToken } : {}),
+      version: opts.version,
+    }),
+  )
 
   app.use(notFoundHandler)
   app.use(errorHandler)

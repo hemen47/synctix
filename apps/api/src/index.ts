@@ -80,6 +80,7 @@ const app = createApp({
   startedAt,
   store,
   ...(process.env.SYNTRIX_API_KEY ? { apiKey: process.env.SYNTRIX_API_KEY } : {}),
+  ...(process.env.MCP_BEARER_TOKEN ? { mcpBearerToken: process.env.MCP_BEARER_TOKEN } : {}),
   ...(process.env.PUBLIC_ORIGIN ? { publicOrigin: process.env.PUBLIC_ORIGIN } : {}),
 })
 

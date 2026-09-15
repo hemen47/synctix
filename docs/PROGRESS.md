@@ -159,8 +159,19 @@ ERC check (needs the `kicad` profile), and M5's op-amp gain figure (M6's parts p
         without keys and never turns a search into an error
   - [x] all three registered by default and skipped when unconfigured
   - [x] 75 parts tests, every one offline
-- [ ] **M8 MCP** — MCP inspector lists all tools over `/mcp` and stdio; end-to-end
-      circuit creation from an external MCP client.
+- [x] **M8 MCP** — every tool listed over `/mcp` and stdio; end-to-end circuit creation
+      from an external MCP client.
+  - [x] 19 tools, generated from the same `AGENT_OPERATIONS` the in-app agent uses
+        (ADR-0025) — one surface, two callers
+  - [x] Streamable HTTP at `/mcp` in the api process, bearer-token guarded, one
+        `McpServer` per session
+  - [x] `stdio-mcp.ts` for Claude Desktop and Cursor; diagnostics on stderr, because
+        stdout is the transport
+  - [x] tested with a real SDK `Client`, not hand-rolled JSON-RPC: it creates a design,
+        searches parts, adds two components, creates a ground net, wires them, runs ERC
+        and reads the log back
+  - [x] SDK pinned to 1.22 — 1.24 moved to zod 4 (ADR-0024)
+  - [x] 55 api tests
 - [ ] **M9 PCB** — `pcb_board` + placement constraints + tscircuit autorouter →
       `pcb_trace`; Gerber export; DSN export as an escape hatch; `kicad-cli` DRC passes
       on a 2-layer ams1117_regulator board when the profile is up; PCB tab becomes

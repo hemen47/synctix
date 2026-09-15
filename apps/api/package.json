@@ -11,13 +11,18 @@
     "test": "vitest --passWithNoTests",
     "test:run": "vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint src --max-warnings 0"
+    "lint": "eslint src --max-warnings 0",
+    "mcp:stdio": "tsx --env-file-if-exists=../../.env src/stdio-mcp.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.22.0",
+    "@syntrix/agent": "workspace:*",
     "@syntrix/core": "workspace:*",
+    "@syntrix/export": "workspace:*",
     "@syntrix/layout": "workspace:*",
     "@syntrix/parts": "workspace:*",
     "@syntrix/shared": "workspace:*",
+    "@syntrix/sim": "workspace:*",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "mongodb": "^7.6.0",

@@ -639,3 +639,43 @@ a BOM can carry it.
 **Consequence.** The source reports `disabled` with a message naming `make kicad-libs`
 when no checkout is present, which is the normal state — the library is ~15k files and not
 something to vendor.
+
+---
+
+## ADR-0024 — The MCP SDK is pinned to 1.22, the last zod-3 release
+
+**Status:** accepted · 2026-09-15
+
+`@modelcontextprotocol/sdk@1.24.0` moved its zod dependency to `^3.25 || ^4.0` and imports
+the `zod/v3` compatibility subpath, which only exists in zod 4. On our pinned zod 3
+(ADR-0002) any import fails with `ERR_PACKAGE_PATH_NOT_EXPORTED: './v3'` — an error naming
+zod's export map rather than the SDK, which is a poor signpost.
+
+**Decision.** Pin `1.22.0`, the last release depending on `zod@^3.23.8`. The same trap
+took `zod-to-json-schema`, which is pinned to the 3.24 line for exactly this reason; both
+are consequences of ADR-0002 and both unpin together when `circuit-json` ships zod 4 types.
+
+**Revisit** with ADR-0002. Until then, check a package's zod range before upgrading it.
+
+---
+
+## ADR-0025 — MCP tools are the agent's tools
+
+**Status:** accepted · 2026-09-15
+
+The MCP server exposes the same operation set as the in-app agent, generated from the same
+`AGENT_OPERATIONS` list and validated by the same `operationSchema`. `move_component` and
+`undo` are absent from both for the same reasons (principle 4; undo belongs to the user).
+
+**Decision.** One tool surface, two callers. Adding an Operation to core adds it to the
+REST API, the in-app agent and every external MCP client at once, with nothing to keep in
+step by hand. A second hand-written schema for MCP would be a second thing to drift.
+
+**Two things MCP needs that the agent does not**, both a consequence of a client arriving
+with no session:
+
+- **The design id is a tool argument**, not ambient context, and `list_designs` exists to
+  find one.
+- **Tool descriptions carry their own context.** Our agent reads the house rules in its
+  system prompt; an MCP client has no prompt from us, so "connect two pins" has to also
+  say that power and ground belong on named nets.
