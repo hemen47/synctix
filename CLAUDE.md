@@ -42,8 +42,11 @@ then resume from PROGRESS.md's **Current task**. Never redo completed work.
    embedder). Switching provider is an env/yaml change only. Secrets are server-side only.
 9. **Parts data is first-class.** Official APIs and openly licensed libraries only — no
    HTML scraping of distributor sites. License and provenance recorded per part.
-10. **Minimal infrastructure.** One Node runtime for all app code. Docker Compose has
-    **exactly four required services**; anything else is an opt-in profile.
+10. **Minimal infrastructure.** One Node runtime for all app code, and **no containers at
+    all** (ADR-0029). Production is one process on one port; development is that process
+    behind the Vite dev server on the same port. Before adding a service, show that the
+    work cannot be done in-process — that test removed KiCad, Meilisearch, Redis and
+    Caddy, and nothing was lost.
 
 ## Verify, never guess
 
@@ -54,8 +57,9 @@ in DECISIONS.md — check there before re-deriving.
 
 ## Stack
 
-- pnpm workspaces + Turborepo, TypeScript strict, ESM, Node 20+, Vitest, Playwright,
-  ESLint + Prettier, Husky, GitHub Actions.
+- pnpm workspaces, TypeScript strict, ESM, Node 20+, Vitest, Playwright,
+  ESLint + Prettier, Husky, GitHub Actions. **No Turborepo** — `pnpm -r` runs workspace
+  scripts in topological order, and turbo crashed on Windows for every task (ADR-0028).
 - **zod is pinned to v3** workspace-wide (ADR-0002) — `circuit-json` is built against
   zod 3 and declares it as an undeclared peer. Use `zod-to-json-schema` for tool schemas.
 - **tscircuit packages** (pinned exactly; 0.0.x has no semver guarantee — ADR-0005/0006):
@@ -73,25 +77,35 @@ in DECISIONS.md — check there before re-deriving.
 - Backend: Express, Mongoose, Zod, SSE, Pino, rate limiting, problem+json errors. MCP is
   served from the **same api process** via `@modelcontextprotocol/sdk` (Streamable HTTP
   at `/mcp`) plus a stdio entry for local Claude Desktop/Cursor. Long jobs use an
-  in-process Mongo-backed queue (no Redis) until the `indexing` profile is enabled.
+  in-process Mongo-backed queue. There is no Redis and no BullMQ.
+  In production this same process also serves the built web app (ADR-0029), and it ships
+  as one esbuild bundle, `apps/api/dist/server.js` (ADR-0030).
 - Simulation: tscircuit's WASM ngspice in a Web Worker (browser) and in Node (server).
   No native ngspice service.
-- Layout: `elkjs`. Artifacts: local volume `./data/artifacts`. No MinIO.
+- Layout: `elkjs`. Artifacts: `./data/artifacts` on disk. No MinIO.
+- Parts search: `LocalPartsIndex` with no database, `MongoPartsIndex` with one. Both rank
+  through `search.ts`. No Meilisearch.
+- Export is pure TypeScript throughout — KiCad, Gerber, DSN, BOM, pick-and-place. There is
+  no `kicad-cli` service and no Python or Java anywhere in the stack.
 
-## Services
+## Ports
 
-Docker Compose, Caddy public entry on **port 3015**:
+**One public port, 3015**, in development and in production alike. The browser never sees
+another, and the app's fetch paths are identical in both.
 
-- **Required (3):** `proxy` (Caddy :3015 → web, `/api`, `/mcp`), `web` (nginx static,
-  :3016), `api` (Express + MCP, :3017).
-- **Optional profiles:** `mongo` (only if you want the database in a container), `kicad`
-  (kicad/kicad:9.0 + FastAPI wrapper over `kicad-cli`, :3019), `indexing` (redis + BullMQ
-  worker for large parts ingestion), `search` (meilisearch :7700).
+- **Development** — Vite serves the app on `WEB_PORT` (3015) and proxies `/api`, `/mcp`,
+  `/health` and `/live` to the API on `API_PORT` (3016). Two processes, because a backend
+  restart must not tear down frontend HMR; the second port is internal.
+- **Production** — one Node process serves the built SPA, `/api` and `/mcp` on 3015. The
+  SPA mount goes on **last**, after every router, so a mistyped `/api` path still 404s as
+  problem+json rather than being answered with `index.html`.
 
 ## Conventions
 
-- **ESM only.** Local imports are extensionless; package entry points are `src/index.ts`
-  in dev and `dist/index.js` when built.
+- **ESM only.** Local imports are extensionless, and workspace packages point their
+  `exports` at `src/index.ts` — always, not only in development. `tsc` does not rewrite
+  specifiers, so its output is not resolvable ESM; that is why the server is bundled
+  rather than compiled file-by-file (ADR-0030). Nothing consumes a package's `dist`.
 - **Result type, not exceptions**, for domain failures: `Result<T, E>` from
   `@syntrix/shared`. Throw only for programmer error.
 - Every validation error carries `code`, `message`, `hint`, `elementIds` so the LLM can
@@ -107,19 +121,24 @@ Docker Compose, Caddy public entry on **port 3015**:
 
 ```bash
 pnpm install
-pnpm dev              # web on :3016, api on :3017 — no Docker needed
-pnpm build            # turbo build all packages
-pnpm test             # vitest across the workspace
+pnpm dev              # http://localhost:3015 — the whole app, one command
+pnpm build            # every package, then the web bundle and the server bundle
+pnpm start            # the built server: app + api + mcp on :3015
+pnpm test             # vitest across the workspace, once
 pnpm typecheck
 pnpm lint
 pnpm e2e              # playwright; starts its own servers
 
-make dev                    # docker compose stack (web on :3015)
-make dev PROFILES=mongo      # add a containerised MongoDB
+pnpm dev:api          # one half at a time, when you want a quieter log
+pnpm dev:web
 ```
 
-MongoDB is **not** a container by default — it runs on the host in development and is
-Atlas in production. `docs/DEVELOPMENT.md` has the detail, including two traps worth
+There is no Docker and no Makefile. Deployment is `pnpm build` then
+`node apps/api/dist/server.js` behind whatever TLS terminator the host already has.
+
+MongoDB runs on the host in development and is Atlas in production. With `MONGO_URL`
+unset the app runs on an in-memory store, which is a supported way to run — it is what the
+Playwright suite drives. `docs/DEVELOPMENT.md` has the detail, including two traps worth
 knowing: a database name containing `/` connects and then fails every query, and a
 `mongodb+srv://` URL needs a DNS resolver that answers (`MONGO_DNS_SERVERS`).
 

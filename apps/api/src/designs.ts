@@ -220,6 +220,63 @@ export const createDesignsRouter = (store: DesignStore): Router => {
     })
   })
 
+  /**
+   * Render a view of the design as SVG, for the browser to show directly.
+   *
+   * A GET returning `image/svg+xml` rather than the POST `/export/:format` route, which
+   * wraps artifacts in JSON: this one is what a viewer pane fetches on every version
+   * change, and unwrapping a base64 payload to put it in the DOM is work with no purpose.
+   *
+   * **Layout is merged first for the schematic view.** Positions are computed, never
+   * stored (principle 5), so a design straight from the store has components with no
+   * coordinates and tscircuit's renderer would stack them all at the origin. The board
+   * views need no such help — pcb elements carry their own positions, and a design that
+   * has not been routed genuinely has nothing to draw.
+   */
+  router.get("/designs/:id/render/:view", async (req: Request, res: Response) => {
+    const found = await store.get(req.params["id"]!)
+    if (!found) return notFound(res, req.params["id"]!)
+
+    const view = req.params["view"]!
+    const format = view === "schematic" ? "svg" : `${view}-svg`
+
+    const { createExporterRegistry, tscircuitExporters } = await import("@syntrix/export")
+    const registry = createExporterRegistry([...tscircuitExporters])
+    const exporter = registry.get(format)
+
+    if (!exporter) {
+      return res
+        .status(404)
+        .type("application/problem+json")
+        .json(
+          toProblemDetails(404, "Unknown view", [
+            validationError(
+              "EXPORTER_NOT_FOUND",
+              `No view called "${view}".`,
+              "Available views: schematic, pcb, assembly, pinout.",
+            ),
+          ]),
+        )
+    }
+
+    let design = found.design
+    if (view === "schematic") {
+      const laid = await elkLayoutStrategy.layout(design)
+      // A layout failure is not a reason to refuse the render — the drawing is degraded,
+      // not wrong, and a blank pane tells the user less than a stacked one.
+      if (laid.ok) design = { ...design, circuit: [...design.circuit, ...laid.value.elements] }
+    }
+
+    const result = await exporter.export(design, { options: {} })
+    if (!result.ok) return fromValidation(res, result.error)
+
+    const svg = result.value[0]?.text
+    if (!svg) return fromValidation(res, [emptyRender(view)])
+
+    // Never cached: the design changes on every operation and this is keyed only by id.
+    res.type("image/svg+xml").set("Cache-Control", "no-store").send(svg)
+  })
+
   router.get("/designs/:id/erc", async (req: Request, res: Response) => {
     const found = await store.get(req.params["id"]!)
     if (!found) return notFound(res, req.params["id"]!)
@@ -264,6 +321,15 @@ const badRequest = (
       ),
     )
 }
+
+const emptyRender = (view: string): ValidationError =>
+  validationError(
+    "EXPORT_FAILED",
+    `The ${view} view rendered nothing.`,
+    view === "schematic"
+      ? "The design has no components yet."
+      : "This view needs board data. Route the board first — POST /designs/:id/route.",
+  )
 
 const notFound = (res: Response, id: string): void => {
   res

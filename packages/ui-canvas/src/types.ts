@@ -101,7 +101,15 @@ export type EditorMode =
   | { kind: "idle" }
   | { kind: "placing"; partRef: string; ftype: string }
   | { kind: "wiring"; from: PinNode; waypoints: Point[] }
-  | { kind: "dragging"; symbolId: string; grabOffset: Point }
+  /**
+   * `preview` is where the symbol is being shown *right now*, snapped to the grid.
+   *
+   * Without it a drag showed nothing until the button came up and the server answered:
+   * the symbol sat still under a moving cursor and then jumped. Keeping the preview in
+   * the mode rather than in the renderer means the drawn position and the position that
+   * will be submitted are the same value, so what the user releases over is what they get.
+   */
+  | { kind: "dragging"; symbolId: string; grabOffset: Point; preview?: Point }
   | { kind: "selecting"; origin: Point; current: Point }
 
 export interface Viewport {

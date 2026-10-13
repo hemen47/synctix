@@ -7,9 +7,11 @@
  */
 
 import { useEffect, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, type PartHit } from "./api"
-import { Canvas } from "./Canvas"
+import { Chat } from "./Chat"
+import { PartForm } from "./PartForm"
+import { Views } from "./Views"
 import { fitCurrentScene, useEditor } from "./store"
 
 /**
@@ -91,10 +93,11 @@ export const App = () => {
         </aside>
 
         <main className="pane pane--center">
-          <Canvas />
+          <Views />
         </main>
 
         <aside className="pane pane--right">
+          <Chat />
           <Inspector />
         </aside>
       </div>
@@ -108,101 +111,196 @@ export const App = () => {
   )
 }
 
+/**
+ * The export formats, all of them tscircuit's (principle 1).
+ *
+ * Each label says what the file is *for*, not what it is called. "KiCad project" means
+ * nothing to someone who has never opened KiCad; "open it in KiCad" tells them whether
+ * they want it.
+ */
+const EXPORTS: Array<{ id: string; label: string }> = [
+  { id: "svg", label: "Schematic image (SVG)" },
+  { id: "pcb-svg", label: "Board image (SVG)" },
+  { id: "kicad", label: "KiCad project — to keep editing elsewhere" },
+  { id: "gerber", label: "Gerber + drill — to have the board made" },
+  { id: "bom-csv", label: "Bill of materials — the parts to buy" },
+  { id: "pnp-csv", label: "Pick and place — for assembly" },
+  { id: "spice", label: "SPICE netlist — to simulate" },
+  { id: "ltspice-asc", label: "LTspice schematic" },
+  { id: "dsn", label: "Specctra DSN — for another autorouter" },
+]
+
 const Toolbar = () => {
   const undo = useEditor((s) => s.undo)
   const redo = useEditor((s) => s.redo)
   const relayout = useEditor((s) => s.relayout)
   const runErc = useEditor((s) => s.runErc)
+  const routeBoard = useEditor((s) => s.routeBoard)
+  const download = useEditor((s) => s.download)
+  const busy = useEditor((s) => s.busy)
 
   return (
     <div className="toolbar">
-      <button type="button" data-testid="undo" onClick={() => void undo()}>
+      <button type="button" data-testid="undo" onClick={() => void undo()} title="Ctrl+Z">
         Undo
       </button>
-      <button type="button" data-testid="redo" onClick={() => void redo()}>
+      <button type="button" data-testid="redo" onClick={() => void redo()} title="Ctrl+Shift+Z">
         Redo
       </button>
-      <button type="button" data-testid="relayout" onClick={() => void relayout()}>
-        Re-layout
+      <span className="toolbar__divider" />
+      <button
+        type="button"
+        data-testid="relayout"
+        onClick={() => void relayout()}
+        title="Tidy the drawing automatically. Parts you dragged stay where you put them."
+      >
+        Tidy up
       </button>
-      <button type="button" data-testid="fit" onClick={fitCurrentScene}>
+      <button type="button" data-testid="fit" onClick={fitCurrentScene} title="Frame the drawing">
         Fit
       </button>
-      <button type="button" data-testid="run-erc" onClick={() => void runErc()}>
-        Run ERC
+      <span className="toolbar__divider" />
+      <button
+        type="button"
+        data-testid="run-erc"
+        onClick={() => void runErc()}
+        title="Check the circuit for electrical mistakes"
+      >
+        Check
       </button>
-      <button type="button" data-testid="export-svg" onClick={exportSvg}>
-        Export SVG
+      <button
+        type="button"
+        data-testid="route"
+        disabled={busy}
+        onClick={() => void routeBoard()}
+        title="Work out where the copper goes on the physical board"
+      >
+        Route board
       </button>
+
+      {/* A select rather than buttons: nine formats is a menu, and the blank first option
+          keeps it from looking like a setting that is currently "svg". */}
+      <select
+        className="toolbar__export"
+        data-testid="export"
+        value=""
+        disabled={busy}
+        onChange={(event) => {
+          if (event.target.value) void download(event.target.value)
+        }}
+      >
+        <option value="">Download…</option>
+        {EXPORTS.map((format) => (
+          <option key={format.id} value={format.id}>
+            {format.label}
+          </option>
+        ))}
+      </select>
     </div>
   )
 }
 
-/**
- * Export the canvas as SVG.
- *
- * Serialising what is on screen rather than asking the server to render: the drawing is
- * already SVG, and an export that can disagree with what the user is looking at is worse
- * than no export. The fabrication-grade exporters are a server concern and arrive at M5.
- */
-const exportSvg = (): void => {
-  const svg = document.querySelector<SVGSVGElement>("[data-testid='canvas']")
-  if (!svg) return
-
-  const blob = new Blob([new XMLSerializer().serializeToString(svg)], {
-    type: "image/svg+xml;charset=utf-8",
-  })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = "schematic.svg"
-  link.setAttribute("data-testid", "svg-download")
-  document.body.append(link)
-  link.click()
-  link.remove()
-  URL.revokeObjectURL(url)
-}
-
 const Palette = () => {
   const [query, setQuery] = useState("")
+  const [adding, setAdding] = useState(false)
   const startPlacing = useEditor((s) => s.startPlacing)
   const mode = useEditor((s) => s.editor.mode)
+  const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
     queryKey: ["parts", query],
     queryFn: () => api.searchParts(query),
   })
 
+  // Whether this deployment can store a part at all. A form that silently forgets what
+  // you typed at the next restart is worse than no form.
+  const { data: capabilities } = useQuery({
+    queryKey: ["parts-capabilities"],
+    queryFn: () => api.partsCapabilities(),
+    staleTime: Infinity,
+  })
+
+  const refreshParts = (): void => {
+    void queryClient.invalidateQueries({ queryKey: ["parts"] })
+  }
+
+  const remove = async (id: string): Promise<void> => {
+    await api.deletePart(id)
+    refreshParts()
+  }
+
   return (
     <>
-      <h2 className="pane__title">Palette</h2>
-      <input
-        className="palette__search"
-        data-testid="part-search"
-        placeholder="resistor, 3.3V LDO, NE555…"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-      />
+      <div className="palette__header">
+        <h2 className="pane__title">Palette</h2>
+        {capabilities?.canAddParts && !adding && (
+          <button
+            type="button"
+            className="palette__new"
+            data-testid="new-part"
+            onClick={() => setAdding(true)}
+            title="Define a part the catalog does not have"
+          >
+            + New part
+          </button>
+        )}
+      </div>
 
-      {mode.kind === "placing" && (
-        <p className="palette__placing" data-testid="placing">
-          Click the canvas to place it. Esc to cancel.
-        </p>
+      {adding ? (
+        <PartForm
+          onCancel={() => setAdding(false)}
+          onSaved={() => {
+            setAdding(false)
+            refreshParts()
+          }}
+        />
+      ) : (
+        <>
+          <input
+            className="palette__search"
+            data-testid="part-search"
+            placeholder="resistor, 3.3V LDO, NE555…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+
+          {mode.kind === "placing" && (
+            <p className="palette__placing" data-testid="placing">
+              Click the canvas to place it. Esc to cancel.
+            </p>
+          )}
+
+          <ul className="palette__list">
+            {isLoading && <li className="palette__empty">searching…</li>}
+            {data?.results.map((part) => (
+              <PartRow
+                key={part.id}
+                part={part}
+                onPick={() => startPlacing(part.id, ftypeOf(part))}
+                onRemove={part.id.startsWith("user:") ? () => void remove(part.id) : undefined}
+              />
+            ))}
+            {data && data.results.length === 0 && (
+              <li className="palette__empty">nothing matched</li>
+            )}
+          </ul>
+        </>
       )}
-
-      <ul className="palette__list">
-        {isLoading && <li className="palette__empty">searching…</li>}
-        {data?.results.map((part) => (
-          <PartRow key={part.id} part={part} onPick={() => startPlacing(part.id, ftypeOf(part))} />
-        ))}
-        {data && data.results.length === 0 && <li className="palette__empty">nothing matched</li>}
-      </ul>
     </>
   )
 }
 
-const PartRow = ({ part, onPick }: { part: PartHit; onPick: () => void }) => (
-  <li>
+const PartRow = ({
+  part,
+  onPick,
+  onRemove,
+}: {
+  part: PartHit
+  onPick: () => void
+  /** Present only for a part the user defined; built-in parts are not deletable. */
+  onRemove?: () => void
+}) => (
+  <li className="palette__row">
     <button
       type="button"
       className="palette__item"
@@ -210,7 +308,10 @@ const PartRow = ({ part, onPick }: { part: PartHit; onPick: () => void }) => (
       data-part={part.id}
       onClick={onPick}
     >
-      <span className="palette__mpn">{part.mpn ?? part.id}</span>
+      <span className="palette__mpn">
+        {part.mpn ?? part.id}
+        {onRemove && <em className="palette__mine"> yours</em>}
+      </span>
       <span className="palette__desc">{part.description}</span>
       <span className="palette__meta">
         {part.package ?? part.category}
@@ -220,6 +321,18 @@ const PartRow = ({ part, onPick }: { part: PartHit; onPick: () => void }) => (
         {!part.footprintVerified && <em className="palette__unverified"> unverified</em>}
       </span>
     </button>
+    {onRemove && (
+      <button
+        type="button"
+        className="palette__delete"
+        data-testid="delete-part"
+        aria-label={`Delete ${part.mpn ?? part.id}`}
+        title="Delete this part"
+        onClick={onRemove}
+      >
+        ×
+      </button>
+    )}
   </li>
 )
 
@@ -253,8 +366,11 @@ const Inspector = () => {
 
   const selected = scene.symbols.filter((s) => selection.includes(s.sourceComponentId))
 
+  // A single element, not a fragment. The right pane is a flex column, and a fragment
+  // spills every heading and list into it as a separate flex child — each one taking its
+  // own share of the height and its own separator, which crushed the chat above it.
   return (
-    <>
+    <div className="inspector">
       <h2 className="pane__title">Inspector</h2>
 
       {selected.length === 0 && <p className="pane__placeholder">Nothing selected.</p>}
@@ -287,6 +403,6 @@ const Inspector = () => {
       <p className="pane__placeholder" data-testid="element-count">
         {design ? `${design.circuit.length} elements · ${design.logLength} operations` : "—"}
       </p>
-    </>
+    </div>
   )
 }

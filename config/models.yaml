@@ -7,31 +7,38 @@
 # Resolution order for a role: SYNTRIX_MODEL_<ROLE> env var, then this file, then
 # `defaults`.
 
+# `openrouter/free` is a *router*, not a model: it picks a free model at random for each
+# call, filtered to ones that support what the request needs — tool calling, in our case.
+# That makes a run free and makes it inconsistent: two identical prompts can be served by
+# two models of very different ability, and the agent loop leans hard on reliable tool
+# calling. If runs start failing or looping, pin a specific model here before concluding
+# the agent is broken.
 defaults:
   provider: openrouter
   temperature: 0.2
   maxTokens: 8192
 
 roles:
-  # Decomposes a request into a plan. Gets the heaviest model: a bad plan wastes every
-  # downstream call.
+  # Decomposes a request into a plan. A bad plan wastes every downstream call, so this is
+  # normally the heaviest model — `openrouter/free` is the zero-cost choice instead.
   planner:
     provider: openrouter
-    model: anthropic/claude-opus-4.5
+    model: openrouter/free
     temperature: 0.3
     maxTokens: 8192
 
-  # Runs the tool loop. High call volume, so this is where model cost actually lands.
+  # Runs the tool loop. High call volume, so this is where model cost would land — it is
+  # zero here, at the price of an unpredictable model per call (see the note below).
   executor:
     provider: openrouter
-    model: anthropic/claude-sonnet-4.5
+    model: openrouter/free
     temperature: 0.1
     maxTokens: 8192
 
   # Reviews ERC and simulation results against the original request.
   reviewer:
     provider: openrouter
-    model: anthropic/claude-sonnet-4.5
+    model: openrouter/free
     temperature: 0.0
     maxTokens: 4096
 

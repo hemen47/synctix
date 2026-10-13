@@ -1,12 +1,12 @@
 # Running SYNTRIX in development
 
-No Docker required. Two Node processes and a MongoDB you already have.
+No Docker, ever. One command, one port, and a MongoDB you already have.
 
 ## First time
 
 ```bash
 pnpm install
-make env            # or: copy .env.example .env
+cp .env.example .env
 ```
 
 Then check `.env`. The only lines that matter to start:
@@ -23,16 +23,22 @@ MCP_BEARER_TOKEN=dev-mcp-token-change-me
 pnpm dev
 ```
 
-That starts both servers:
+Open **<http://localhost:3015>**. That is the whole app.
 
-| Service | URL                     | What it is                     |
-| ------- | ----------------------- | ------------------------------ |
-| web     | <http://localhost:3016> | the editor — **open this one** |
-| api     | <http://localhost:3017> | REST + SSE, reloads on save    |
+Behind it, `pnpm dev` runs two processes:
 
-Vite proxies `/api` to the API, so the browser only ever talks to port 3016. In
-production Caddy does the same routing, which is why the app's fetch paths are identical
-in both.
+| Process | Port | What it is                                               |
+| ------- | ---- | -------------------------------------------------------- |
+| web     | 3015 | Vite: serves the editor, proxies `/api` and `/mcp` below |
+| api     | 3016 | REST + SSE + MCP, reloads on save                        |
+
+You never open 3016. It exists so that restarting the API — which `tsx watch` does on
+every backend edit — does not tear down the frontend's HMR. In production there is no
+watcher and no second process: one Node process serves the app, `/api` and `/mcp` on 3015
+(ADR-0029). The app's fetch paths are identical in both.
+
+Ctrl+C stops both and takes their children with them. If a port ever does stay held, it is
+a bug in `scripts/dev.mjs` rather than something you should have to clean up by hand.
 
 Run one on its own when you want quieter output:
 
@@ -44,8 +50,13 @@ pnpm dev:web
 Check it is alive:
 
 ```bash
-curl http://localhost:3017/health
+curl http://localhost:3015/health
 ```
+
+`status` is `ok` when MongoDB answers, `degraded` when something optional is down, and
+`down` — with a 503 — only when a dependency the app genuinely needs is unreachable
+(ADR-0027). With `MONGO_URL` unset the database reports `disabled`, which is a deliberate
+choice rather than a fault, so the stack still reads `ok`.
 
 ## MongoDB
 
@@ -81,65 +92,75 @@ machine. The API prints the hint automatically if an SRV connection fails this w
 ## The API key
 
 `SYNTRIX_API_KEY` in `.env` guards everything under `/api`. The browser never sends it:
-the Vite dev server attaches the header when it proxies, and in production the reverse
-proxy does the same. Shipping a key to the browser would put it in devtools and in the
-bundle, which is the one thing principle 7 is about.
+the Vite dev server attaches the header when it proxies. In production the browser and the
+API are the same origin, so nothing crosses a boundary that would need one. Shipping a key
+to the browser would put it in devtools and in the bundle, which is the one thing
+principle 8 is about.
 
 So calling the API by hand needs the header, while the app does not:
 
 ```bash
-curl -H "x-api-key: dev-key-change-me" http://localhost:3017/api/designs
-curl http://localhost:3016/api/designs      # through Vite — no header needed
+curl -H "x-api-key: dev-key-change-me" http://localhost:3016/api/designs
+curl http://localhost:3015/api/designs      # through Vite — no header needed
 ```
 
 Unset `SYNTRIX_API_KEY` to turn auth off entirely while you are poking at it.
 
-## If `pnpm dev` crashes with exit code 3221226505
+## Exit code 3221226505 on Windows — fixed, and worth knowing about
 
-That code is `0xC0000409`, a Windows process crash, and it comes from Turborepo's
-interactive terminal UI rather than from anything in this project — it only happens in a
-real terminal, which is why piping the output makes it disappear.
+`0xC0000409` is the Windows fail-fast code, and it used to kill every script in this
+repo: `dev`, `build`, `test`, `typecheck` and `lint`.
 
-Already fixed: `turbo.json` sets `"ui": "stream"`, and the `dev` script passes
-`--ui=stream` as well. If you still hit it, skip Turbo entirely:
+It was Turborepo, and it only happened with a **real console attached** — redirect the
+output to a file or a pipe and it went away, which is why CI and every scripted check
+stayed green while the repo was unusable by hand. An earlier attempt blamed turbo's
+interactive TUI and set `--ui=stream`; that did not help, because the crash is in pnpm
+spawning turbo's Node shim, not in the renderer.
 
-```bash
-pnpm dev:raw       # pnpm --parallel, no turbo
-```
+Turbo is gone (ADR-0028). `pnpm -r` runs workspace scripts in topological order, which is
+all turbo was doing here. If you see `0xC0000409` again, the first question is which new
+tool wrapped a native binary in a Node shim.
 
 ## Other useful commands
 
 ```bash
-pnpm test          # 448 unit tests
+pnpm test          # 478 unit tests, once through
 pnpm typecheck
 pnpm lint
 pnpm e2e           # Playwright; starts its own servers on 4173/4175
 pnpm build
 ```
 
-## Docker, when you do want it
-
-Three required services — `proxy`, `web`, `api` — with everything else opt-in:
+## Running what you would deploy
 
 ```bash
-make dev                       # web on http://localhost:3015
-make dev PROFILES=mongo        # add a containerised MongoDB
-make dev PROFILES="kicad search"
+pnpm build     # packages, the web bundle, then the server bundle
+pnpm start     # http://localhost:3015 — app + api + mcp, one process
 ```
 
-With the containers, the API reaches a host MongoDB through
-`host.docker.internal`, which is already the default `MONGO_URL` in compose.
+`pnpm build` ends at `scripts/build-server.mjs`, which bundles the API and everything it
+imports into a single `apps/api/dist/server.js` (ADR-0030). That file runs against Node
+alone — no `node_modules` beside it, no build tools, no `NODE_ENV` to remember. It serves
+the web app because it _is_ the built server, decided at bundle time rather than by an
+environment variable that a stray `.env` can get wrong.
 
 ## Production
+
+There is no Docker and no Caddy in this repo. Deploying is: build, copy
+`apps/api/dist/server.js`, `apps/web/dist/` and your `.env`, then run it under whatever
+supervisor and TLS terminator the host already has. Point that terminator at port 3015.
 
 Set these in the server's environment — never in a committed file:
 
 ```ini
 NODE_ENV=production
+PUBLIC_ORIGIN=https://your.domain
 MONGO_URL=mongodb+srv://…@syntrix.…mongodb.net/syntrix
 MONGO_DNS_SERVERS=8.8.8.8,8.8.4.4
 SYNTRIX_API_KEY=<a real secret>
 MCP_BEARER_TOKEN=<a real secret>
 ```
 
-See `docs/DEPLOY_VPS.md` for the Caddy and TLS setup.
+`/live` is the liveness check — it touches nothing external, so a flaky database cannot
+get a healthy process restarted. `/health` is the readiness one, and returns 503 only when
+a required dependency is unreachable.

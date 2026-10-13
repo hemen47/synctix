@@ -739,3 +739,355 @@ The 503 becomes reachable again when Mongo is wired through `createHealthHandler
 `extraProbes` hook, which is the dependency whose absence genuinely means "not serving".
 Host dev now reports `200 degraded` with `kicad` and `meilisearch` named as down, which is
 the honest answer: those URLs are configured and unreachable.
+
+---
+
+## ADR-0028 — Turborepo is removed; `pnpm -r` runs the workspace
+
+**Status:** accepted · 2026-09-15
+
+**Context.** `pnpm run dev` failed instantly with exit code `3221226505` — `0xC0000409`,
+the Windows fail-fast code, which is what a Rust binary's `abort()` produces. It printed
+the turbo banner and died before "Packages in scope".
+
+It was reproducible, and the trigger was the terminal. With stdout redirected to a file or
+a pipe, `turbo` worked; attached to a real console it crashed every time. That is why it
+survived so long undiagnosed — every automated check redirects output.
+
+Isolating the pieces:
+
+| invocation, real console             | result                  |
+| ------------------------------------ | ----------------------- |
+| `pnpm run dev` → turbo               | crash `0xC0000409`, 3/3 |
+| `turbo run dev --ui=stream` directly | works                   |
+| `pnpm --parallel ... dev` (no turbo) | works                   |
+
+Neither program crashes alone. It is pnpm (through corepack) spawning turbo's Node shim
+with a console attached — that shim does its own Ctrl-C and console forwarding
+(`CTRL_C_BYTE` in `node_modules/turbo/bin/turbo`). And it was not only `dev`: `build`,
+`typecheck`, `lint` and `test:run` all died the same way. Turbo was unusable here for
+every task it owned.
+
+**Decision.** Remove turbo. Root scripts call `pnpm -r`, which already runs workspace
+scripts in topological order, and which the husky hook and CI were using anyway. `pnpm dev`
+runs `scripts/dev.mjs`.
+
+**Consequence.** We lose turbo's build cache; on a workspace this size the full build is
+about a minute, which is a fair price for a build system that runs. We also lose a
+dependency, a config file and a daemon.
+
+`scripts/dev.mjs` does two things turbo did not. It spawns children as `node <cli entry>`
+rather than through `.bin` shims, which on Windows are `.CMD` files that add a `cmd.exe`
+to every process tree; and it kills the process _tree_ on exit. Between them those fix the
+orphaned `vite` and `tsx` processes that used to survive Ctrl+C and hold the ports, so the
+next `pnpm dev` failed with EADDRINUSE on a port nothing appeared to own.
+
+---
+
+## ADR-0029 — No containers, and one public port
+
+**Status:** accepted · 2026-09-15 · supersedes the service topology in ADR-0009…0013
+
+**Context.** The stack was Caddy on :3015 in front of a static web server on :3016 and the
+api on :3017, with four opt-in compose profiles: `mongo`, `kicad`, `indexing`
+(redis + BullMQ) and `search` (Meilisearch). None of it had ever run — the Docker daemon
+is not available on the development machine (see the M0' deferral in PROGRESS.md).
+
+Auditing what those containers actually did:
+
+- **`kicad`** — a Python FastAPI wrapper over `kicad-cli`. Nothing called it. Every export
+  we ship is already pure TypeScript: `circuit-json-to-kicad`, `circuit-json-to-gerber`,
+  `dsn-converter`, `circuit-json-to-bom-csv`, `circuit-json-to-pnp-csv`. Its only unique
+  capability was KiCad's own ERC/DRC, which was deferred and unreferenced. The single
+  `KICAD_SERVICE_URL` in the codebase was a health probe pointed at nothing.
+- **`indexing`** — redis and a BullMQ worker. Zero references in the source. The queue that
+  exists is the in-process Mongo-backed one.
+- **`search`** — Meilisearch, behind the `PartsIndex` interface. `LocalPartsIndex` and
+  `MongoPartsIndex` implement the same interface with the same ranking rules from
+  `search.ts`, so it bought typo tolerance for a catalog that does not need a search
+  server.
+- **`mongo`** — already a profile, because Mongo runs on the host in development and is
+  Atlas in production.
+
+That left Caddy proxying two Node processes that could be one.
+
+**Decision.** No Docker, no Caddy, no profiles. One public port, **3015**, in development
+and in production alike:
+
+- **Development** — Vite serves the app on 3015 and proxies `/api`, `/mcp`, `/health` and
+  `/live` to the API on 3016. `pnpm dev` starts both.
+- **Production** — one Node process serves the built SPA, `/api` and `/mcp` on 3015. The
+  SPA mount goes on last, after every router, so a mistyped `/api` path still 404s as
+  problem+json instead of being answered with `index.html`.
+
+The browser only ever sees 3015, and the app's fetch paths are identical in both.
+
+**Why development still runs two processes.** Vite can run as Express middleware, which
+would make development one process too. It would also mean that every backend edit — which
+restarts `tsx watch` — tears down the Vite dev server, losing HMR state and re-optimizing
+dependencies on every save. The second port is an internal detail that buys a fast edit
+loop. Production has no watcher, so there it is genuinely one process.
+
+**Consequence.** Deployment is `pnpm build` and `node apps/api/dist/server.js` behind
+whatever TLS terminator the host already has. `docker-compose.yml`,
+`docker-compose.dev.yml`, `Caddyfile`, `Makefile`, `services/kicad/` and both Dockerfiles
+are gone, along with `MeiliPartsIndex` and every profile variable. If a container is ever
+wanted again it is a fifteen-line single-stage Dockerfile over the same two commands.
+
+---
+
+## ADR-0030 — The server ships as one bundled file
+
+**Status:** accepted · 2026-09-15
+
+**Context.** With Docker gone, `node apps/api/dist/index.js` became the deployment. It had
+never been run, and it did not work.
+
+Two independent reasons, each fatal:
+
+1. **`tsc` output is not resolvable ESM here.** The house style is extensionless local
+   imports (`from "./types"`), and `tsc` emits specifiers unchanged. Node's ESM resolver
+   requires `./types.js`. Fixing that at the source meant putting `.js` on every local
+   import in the workspace and abandoning a documented convention.
+2. **Workspace packages resolved to TypeScript.** Every `@syntrix/*` package points its
+   `exports` at `./src/index.ts`, so the built server loaded `.ts` files.
+
+Adding a `development` export condition fixed (2) and not (1). Bundling fixes both.
+
+**Decision.** `scripts/build-server.mjs` bundles `apps/api/src/index.ts` with esbuild into
+a single `apps/api/dist/server.js`.
+
+**Everything is bundled, including node_modules.** Externalising dependencies was tried
+first and is wrong: an external import keeps its bare specifier, so Node re-resolves it
+from `apps/api/dist/` at runtime — where pnpm links only that package's _direct_
+dependencies. Anything reached through `@syntrix/agent` or `@syntrix/core`, such as
+`zod-to-json-schema`, is unresolvable there, and the failure lands at boot rather than at
+build. Bundling resolves every import from its real importer, at the only time the answer
+is knowable.
+
+**Consequence.** One 25 MB file plus a sourcemap, which runs against Node with no
+`node_modules` beside it. Whether it serves the web app is decided by a build-time
+`define`, not by `NODE_ENV` — `pnpm start` was otherwise binding the development port and
+skipping the SPA whenever a `.env` said `development`, which is the common case.
+
+Bundling also surfaced a real dependency fault that the source tree had been hiding: a
+hoisted `zod-to-json-schema@3.25` imports `zod/v3`, a subpath that exists only in zod 4.
+It is now pinned to 3.24.6 workspace-wide, alongside the zod 3 pin from ADR-0002.
+
+---
+
+## ADR-0031 — zod moves to 3.25.76 so the AI SDK can load
+
+**Status:** accepted · 2026-09-15
+
+**Context.** Wiring `AgentLoop` to a real provider meant importing `ai@7`. It fails at
+import time against the pinned zod:
+
+```
+Package subpath './v4' is not defined by "exports" in .../zod/package.json
+```
+
+`@ai-sdk/provider-utils@5` imports `zod/v4`. zod 3.24.1 has no such subpath — it exports
+only `.`. The failure is not confined to the agent: `app.ts` imports the agent router, so
+every api test file failed to collect.
+
+**Decision.** Pin zod to **3.25.76** workspace-wide instead of 3.24.1.
+
+3.25 is still the zod 3 line — the default export is the same v3 API that `circuit-json`
+is built against, which is what ADR-0002 actually requires. What it adds is the `zod/v3`
+and `zod/v4` subpaths, published precisely so libraries can migrate without splitting the
+ecosystem. Nothing in the workspace imports either subpath; the AI SDK does.
+
+**Rejected:** downgrading to `ai@5`. It would have worked, but `ai@7` is what the project
+already chose and listed in `minimumReleaseAgeExclude`, and pinning a provider SDK two
+majors back to avoid a patch-level zod bump is the worse trade.
+
+**Consequence.** ADR-0002 stands as written — zod is still v3. The `zod-to-json-schema`
+override from ADR-0030 is unaffected and still needed. 487 tests pass on the new pin.
+
+---
+
+## ADR-0032 — The agent reaches the browser over SSE, not a POST that returns at the end
+
+**Status:** accepted · 2026-09-15
+
+**Context.** M6 built `runAgent` and proved it against a mock provider, but nothing ever
+called it: there was no HTTP route and no UI. The headline feature of the product was
+unreachable. Closing that gap raised one real design question — what the browser gets
+while a run is in progress.
+
+A run is a dozen provider round trips and as many engine calls, and takes tens of seconds.
+
+**Decision.** `POST /api/designs/:id/agent` streams `text/event-stream`: a `start` frame,
+one `trace` frame per `AgentTraceEvent`, then one terminal `done` or `error`.
+
+**The trace is the product, not a progress bar.** The user of this tool may not be able to
+read a schematic, so they cannot check the answer by looking at it. What they _can_ check
+is the work: the part it searched for, the pinout it read, the connection the engine
+rejected and what it did instead. A run that ends in "done!" is unverifiable by exactly
+the person who most needs to verify it.
+
+**Availability is a pre-flight check, not a stream frame.** `createModelClient` is called
+_before_ the first byte is written, so a missing API key is a 503 with a hint. Once the
+response is an event stream the status is already 200, and "no key" would arrive as an
+error inside a success — harder to handle, and the single most common first-run failure.
+`GET /api/agent/status` reports the same thing per role, so the composer can be disabled
+with a reason instead of failing after someone types a paragraph.
+
+**The client uses `fetch` with a reader, not `EventSource`.** `EventSource` cannot POST,
+so the prompt would go in a query string; and it reconnects on close, which for a one-shot
+run means silently starting a second one.
+
+**Consequence.** The design is _not_ sent down the stream. It is an addressable resource,
+and duplicating it would give two paths to one state that could disagree; the client
+re-reads it when the run ends. Cost limits remain advisory: the SDK reports tokens, not
+money, and `maxIterations` is what actually bounds a run.
+
+---
+
+## ADR-0033 — The other three views are tscircuit's renderers, served as SVG
+
+**Status:** accepted · 2026-09-15
+
+**Context.** The editor had one view. The PCB and 3D tabs were deferred at M5 pending
+`@tscircuit/runframe`, which is a React application and a large dependency.
+
+**Decision.** Board, assembly and pinout views are `circuit-to-svg` — already a dependency
+of `@syntrix/export` — added to the exporter registry as `assembly-svg` and `pinout-svg`
+beside the existing `svg` and `pcb-svg`, and served by `GET /designs/:id/render/:view`
+returning `image/svg+xml`.
+
+Going through the registry rather than importing the renderer in the route keeps
+principle 6 intact: the views and the downloads are the same plugins, so a format added
+once appears in both.
+
+A GET returning an image, rather than the POST `/export/:format` route that wraps
+artifacts in JSON: the pane re-fetches on every version change, and unwrapping base64 to
+put it in the DOM is work with no purpose. The browser gets loading, decoding and
+cancellation for free from `<img>`.
+
+**Schematic renders get layout merged first.** Positions are computed, never stored
+(principle 5), so a design straight from the store has no coordinates and tscircuit's
+renderer would stack every component at the origin. The board views need no such help.
+
+**Consequence.** 3D is still deferred; it genuinely needs runframe. `runframe` stays out
+of the web bundle.
+
+---
+
+## ADR-0034 — A placement is one operation, and the document and the drawing are published together
+
+**Status:** accepted · 2026-09-15
+
+**Context.** The editor felt unreliable in ways that looked like separate bugs and were
+two.
+
+1. **Placing a part emitted `add_component` then `move_component` as two operations.**
+   The component was drawn at the layout engine's guess after the first and jumped to the
+   click point after the second, and undoing a placement took two presses — the first of
+   which left an unplaced component behind.
+2. **`submit` set the design, then relaid out.** Between those two `set` calls the status
+   bar said "v3" while the canvas still drew v2. A drag was the visible case: the symbol
+   snapped back to where it started, sat there, then jumped when the layout arrived.
+
+The second was found by instrumenting a Playwright run: after a drag, `manualEdits` held
+the new centre while the rendered scene still held the old one.
+
+**Decision.**
+
+- Placement emits a single atomic `batch`. Still two steps underneath, because
+  `add_component` takes no position and a click is a manual edit (ADR-0013) — but one
+  log entry, one undo, and no intermediate state to draw.
+- Every path that changes the document (`submit`, `undo`/`redo`, `open`, `routeBoard`,
+  and the agent's post-run refresh) publishes the design and its scene in **one** `set`,
+  through a `withLayout` helper. Two `set` calls can be observed in between; one cannot.
+
+**Also:** idle pointer movement is no longer dispatched — it ran `reduce` and a store
+write on every pixel of cursor travel for a result that was identical — and `dragging`
+gained a snapped `preview` in the mode, so a dragged symbol follows the cursor instead of
+jumping on release.
+
+**Consequence.** The e2e suite encoded the old behaviour and was updated: a placement is
+one undo, not two, and `placePart` now waits for the symbol to be _drawn_ rather than for
+the placing mode to clear — the mode resets synchronously while the operation is still in
+flight, so the old form measured the previous frame. That staleness was what made the
+drag test fail intermittently.
+
+---
+
+## ADR-0035 — Custom parts live in a JSON file, layered over the built-in catalog
+
+**Status:** accepted · 2026-09-16
+
+**Context.** T0 is a fixed set of generic parts and every other source is a remote
+catalogue keyed on someone else's identifiers. Neither lets a person say "this is the
+module I actually have, here are its pins" — which is most of what a hobbyist or a
+prototyper needs to draw their own board.
+
+**Decision.** A `UserPartsIndex` backed by `data/parts/user-parts.json`, presented through
+a `CompositePartsIndex` that layers it over `LocalPartsIndex(T0_PARTS)`.
+
+**A file, not a Mongo collection.** The app is a supported way to run with no `MONGO_URL`
+at all, so a database-only store would make a documented configuration silently lose the
+user's work. A file is also something you can copy, diff, commit and send to a colleague,
+which a row is not. Writes go through a temp file and a rename, because a partial write
+here is the user's whole library truncated.
+
+**Custom parts rank above built-in ones** in search, and are never interleaved by score:
+someone who has defined a part has expressed a preference a generic match should not
+out-rank. Writes only ever reach the overlay — a quietly redefined `t0:resistor` is a
+debugging session nobody should have, so the built-in catalog is not editable and its
+parts are not deletable.
+
+**Validation refuses rather than warns.** `buildUserPart` runs the real footprinter, and
+rejects a footprint that resolves to nothing or that has fewer pads than the part has
+pins. That last check is the point of the feature's safety story: it is the difference
+between finding out now and finding out when a board comes back from the fab. Errors are
+returned all at once, as the engine's own `ValidationError`s, so the form can show "the
+footprint has 2 pads but the part has 4 pins" rather than "invalid part".
+
+**A footprint is never marked `verified`.** The flag means "checked against a datasheet or
+a trusted library", and claiming that on a user's behalf is how an unchecked land pattern
+reaches a fab. Custom parts therefore always carry the palette's `unverified` mark, and
+the agent's house rules already require it to say so when it uses one.
+
+**The agent cannot create parts.** `create_custom_part` was anticipated in `tools.ts` and
+is deliberately still absent: the house rules say "do not invent a part — say what is
+missing and ask", and a tool that lets the model conjure a pinout is the direct
+contradiction of that. The user defines parts; the agent uses them.
+
+**Consequence.** `SYNTRIX_DATA_DIR` overrides the location; the default is resolved from
+the repo root by walking up for the workspace marker, not from `process.cwd()`, for the
+same reason as ADR-0031's sibling fix — the api runs from `apps/api` in development and
+from `dist/` in production.
+
+---
+
+## ADR-0036 — One parts stack per process, built before the store
+
+**Status:** accepted · 2026-09-16
+
+**Context.** Custom parts shipped broken in a way every read path hid. A part could be
+saved, listed, searched, fetched and its pinout served — and then `add_component` rejected
+it with `PART_NOT_FOUND`.
+
+The cause was an ordering constraint nobody had had to think about before. A `DesignStore`
+needs a `resolvePart` at construction, and `index.ts` constructs the store _before_
+`createApp` runs, because `createApp` takes the store as an option. So the bootstrap built
+its own resolver — `t0Resolver`, which has never heard of the user's library — while
+`createApp` built a second, correct one for the routers. Both were right in isolation. The
+only path that used the wrong one was the engine's, which is the one that matters.
+
+Every test passed, because tests call `createApp` without a store and get the good
+resolver. The production wiring was the untested shape.
+
+**Decision.** `apps/api/src/parts-stack.ts` builds `{ userParts, parts, resolvePart }`
+once. `index.ts` creates it before the store and passes it to both; `createApp` accepts it
+as `partsStack` and only builds its own when a test does not supply one.
+
+**Consequence.** The mismatch is now unrepresentable rather than merely fixed — there is
+one object, and the store and the routers are handed the same one. A regression test
+drives the production shape explicitly: a store supplied from outside, exactly as the
+bootstrap supplies one. The general lesson is worth stating: a dependency built in two
+places to satisfy an initialisation order is a bug waiting for the two copies to diverge,
+and "all the tests pass" meant only that the tests used one copy.

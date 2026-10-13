@@ -313,7 +313,7 @@ describe("viewport", () => {
 })
 
 describe("editor state machine", () => {
-  it("placing a part emits add_component then move_component", async () => {
+  it("places a part as one atomic batch of add_component then move_component", async () => {
     const scene = await laidOutScene()
     const placing = reduce(
       initialState(),
@@ -323,11 +323,21 @@ describe("editor state machine", () => {
 
     const result = reduce(placing.state, { type: "pointer_down", at: { x: 20.1, y: 10.2 } }, scene)
 
-    expect(result.operations.map((o) => o.type)).toEqual(["add_component", "move_component"])
+    // One operation, so a placement is one undo and the component is never briefly drawn
+    // at the layout engine's guess before jumping to where the user clicked.
+    expect(result.operations).toHaveLength(1)
+    const batch = result.operations[0] as {
+      type: string
+      atomic: boolean
+      ops: Array<{ type: string; center?: { x: number; y: number } }>
+    }
+    expect(batch.type).toBe("batch")
+    expect(batch.atomic).toBe(true)
+    expect(batch.ops.map((o) => o.type)).toEqual(["add_component", "move_component"])
+
     // The click position is a manual edit, so it goes through move_component rather than
     // being baked into add_component — geometry is computed, placement is chosen.
-    const move = result.operations[1] as { center: { x: number; y: number } }
-    expect(move.center).toEqual(snapToGrid({ x: 20.1, y: 10.2 }))
+    expect(batch.ops[1]!.center).toEqual(snapToGrid({ x: 20.1, y: 10.2 }))
     expect(result.state.mode.kind).toBe("idle")
   })
 

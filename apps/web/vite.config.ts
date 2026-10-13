@@ -11,37 +11,60 @@ export default defineConfig(({ mode }) => {
   // browser — it is read here so the dev server can act on it, which is the whole point
   // of the header injection below.
   const env = loadEnv(mode, repoRoot, "")
+  const pick = (key, fallback) => env[key] ?? process.env[key] ?? fallback
+
+  // One port for the browser, in development and in production alike. Here Vite serves
+  // the app and forwards /api and /mcp to the API; in production the API process serves
+  // the built assets itself on this same port. The app's fetch paths never change, and
+  // there is no proxy in front of either (ADR-0029).
+  const webPort = Number(pick("WEB_PORT", 3015))
+  const apiTarget = pick("API_PROXY_TARGET", `http://localhost:${pick("API_PORT", 3016)}`)
+
+  /**
+   * The API key is attached here, by the dev server, rather than by the app.
+   *
+   * Principle 8: secrets exist server-side only. Shipping the key to the browser would
+   * put it in devtools, in the bundle and in anyone's page source. The proxy is the
+   * server side of this hop, so it is where the header belongs.
+   */
+  const injectHeader = (header, value) => (proxy) => {
+    if (!value) return
+    proxy.on("proxyReq", (proxyReq) => {
+      if (!proxyReq.getHeader(header)) proxyReq.setHeader(header, value)
+    })
+  }
 
   return {
     plugins: [react()],
     server: {
-      port: Number(env["WEB_PORT"] ?? process.env["WEB_PORT"] ?? 3016),
+      port: webPort,
       host: true,
-      // In dev the browser talks to Vite, which forwards /api to the API. In production
-      // Caddy does the same routing, so the app's fetch paths are identical in both.
       proxy: {
         "/api": {
-          target: process.env["API_PROXY_TARGET"] ?? `http://localhost:${env["API_PORT"] ?? 3017}`,
+          target: apiTarget,
           changeOrigin: true,
-          configure: (proxy) => {
-            // The API key is attached here, by the dev server, rather than by the app.
-            //
-            // Principle 7: secrets exist server-side only. Shipping the key to the
-            // browser would put it in devtools, in the bundle and in anyone's page
-            // source. The proxy is the server side of this hop, so it is where the
-            // header belongs — and it mirrors production, where the reverse proxy does
-            // the same thing and the app again sends nothing.
-            const apiKey = env["SYNTRIX_API_KEY"] ?? process.env["SYNTRIX_API_KEY"]
-            if (!apiKey) return
-
-            proxy.on("proxyReq", (proxyReq) => {
-              if (!proxyReq.getHeader("x-api-key")) proxyReq.setHeader("x-api-key", apiKey)
-            })
-          },
+          configure: injectHeader("x-api-key", pick("SYNTRIX_API_KEY", "")),
+        },
+        // Health and liveness answer from the API in production, where it serves this
+        // port itself. Proxying them keeps dev identical rather than letting the SPA
+        // fallback answer /health with index.html.
+        "/health": { target: apiTarget, changeOrigin: true },
+        "/live": { target: apiTarget, changeOrigin: true },
+        // Streamable HTTP, for an MCP client pointed at this one port.
+        "/mcp": {
+          target: apiTarget,
+          changeOrigin: true,
+          configure: injectHeader(
+            "authorization",
+            (() => {
+              const token = pick("MCP_BEARER_TOKEN", "")
+              return token ? `Bearer ${token}` : ""
+            })(),
+          ),
         },
       },
     },
-    preview: { port: Number(env["WEB_PORT"] ?? 3016), host: true },
+    preview: { port: webPort, host: true },
     build: { outDir: "dist", sourcemap: true },
   }
 })

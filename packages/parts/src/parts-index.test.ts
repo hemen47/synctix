@@ -19,7 +19,6 @@ import {
   toMongoFilter,
   type PartsCollectionLike,
 } from "./parts-index"
-import { MeiliPartsIndex, toMeiliFilter } from "./meili-index"
 import type { PartDefinition } from "./types"
 
 describe("LocalPartsIndex", () => {
@@ -176,28 +175,6 @@ describe("MongoPartsIndex", () => {
     const status = await new MongoPartsIndex(broken).status()
 
     expect(status).toMatchObject({ id: "mongo", status: "disabled", detail: "ECONNREFUSED" })
-  })
-})
-
-describe("MeiliPartsIndex", () => {
-  it("reports disabled with no URL, and never throws for it", async () => {
-    const index = new MeiliPartsIndex()
-
-    // The `search` profile not running is the normal case, not a fault.
-    expect(await index.status()).toMatchObject({ status: "disabled" })
-    expect(await index.search("anything")).toEqual([])
-    expect(await index.get("x")).toBeUndefined()
-    expect(await index.upsert([T0_PARTS[0]!])).toEqual({ upserted: 0 })
-  })
-
-  it("builds filter expressions only for declared filterable attributes", () => {
-    expect(toMeiliFilter({ category: "regulator", package: "SOT-223" })).toEqual([
-      'category = "regulator"',
-      'package = "SOT-223"',
-    ])
-    // Parameter ranges are not expressible without declaring every electrical field
-    // filterable up front, so they are left to the Mongo and local indexes.
-    expect(toMeiliFilter({ params: { voltage_out: { min: 3 } } })).toEqual([])
   })
 })
 

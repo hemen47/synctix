@@ -1,0 +1,27 @@
+# A routing whose provider can never be configured, so the "no API key" path is
+# testable on a machine that does have keys. SYNTRIX_TEST_ABSENT_KEY is never set.
+defaults:
+  provider: anthropic
+  temperature: 0.2
+  maxTokens: 1024
+
+roles:
+  planner:
+    provider: anthropic
+    model: test-model
+  executor:
+    provider: anthropic
+    model: test-model
+  reviewer:
+    provider: anthropic
+    model: test-model
+
+providers:
+  anthropic:
+    package: "@ai-sdk/anthropic"
+    apiKeyEnv: SYNTRIX_TEST_ABSENT_KEY
+
+limits:
+  maxIterations: 4
+  maxToolCallsPerIteration: 4
+  maxCostUsdPerRun: 0.10

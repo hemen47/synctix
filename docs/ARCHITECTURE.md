@@ -105,8 +105,8 @@ traceable to the operation, and the agent turn, that produced it.
 | `@syntrix/ui-canvas` | framework-agnostic SVG scene graph and hit testing                                               |
 
 Apps: `web` (Vite/React) and `api` (Express + MCP + the in-process job queue) — one Node
-runtime for all app code. The only service is the optional `kicad` profile, a FastAPI
-wrapper around `kicad-cli`.
+runtime for all app code, and no services at all. In production `api` also serves the
+built `web` bundle, so a deployment is a single process (ADR-0029).
 
 Dependency direction is strictly downward: `shared` then `core`, then `parts` / `layout` /
 `export` / `sim`, then `agent`, then apps. Core depends on no sibling package except
@@ -165,8 +165,8 @@ produces `pcb_trace` elements; we contribute board outline, placement and constr
 Three tiers. **T0** is a generic catalog in code (R, C, L, diodes, transistors, common
 ICs, connectors, power symbols) — always available, no network, no database. **T1** is a
 curated set in Mongo with a text index over mpn, description, category and package, plus
-structured electrical fields for filtering — behind a `PartsIndex` interface, so the
-optional `search` profile swaps in Meilisearch without touching a caller. **T2** is
+structured electrical fields for filtering — behind a `PartsIndex` interface, so a
+different backing store swaps in without touching a caller. **T2** is
 federated: adapters for LCSC/EasyEDA, KiCad libraries, DigiKey, Nexar and Mouser, with
 results cached and promotable into T1.
 
@@ -201,11 +201,18 @@ SSE so the user watches the reasoning rather than a spinner.
 
 ## 11. Deployment
 
-Docker Compose behind Caddy on port 3015, which terminates TLS and routes `/` to web and
-both `/api` and `/mcp` to the api process.
+**One process, one port — 3015.** `pnpm build` produces two artifacts: the web bundle in
+`apps/web/dist`, and `apps/api/dist/server.js`, a single esbuild bundle of the API and
+everything it imports (ADR-0030). `node apps/api/dist/server.js` serves the app, `/api`
+and `/mcp` together, against Node alone. Put it behind whatever TLS terminator the host
+already has.
 
-**Four required services**: `proxy`, `web`, `api`, `mongo`. Everything else is an opt-in
-profile — `kicad` (a FastAPI wrapper around `kicad-cli`, so the Node process never shells
-out to a binary it cannot version), `indexing` (Redis plus a BullMQ worker running the
-same job handlers the api runs in-process), and `search` (Meilisearch). Artifacts are a
-local volume. A stack with no profile running is fully functional and reports `ok`.
+There is no Docker, no Caddy and no compose profile. Every service that used to exist was
+either unreferenced (`kicad`, `indexing`) or duplicated something already in-process
+(`search`); the audit is ADR-0029. Artifacts are a directory on disk. MongoDB runs on the
+host or on Atlas, and with `MONGO_URL` unset the app runs in memory — a supported
+configuration, and the one the Playwright suite drives.
+
+Development differs in exactly one way: Vite owns port 3015 and proxies `/api`, `/mcp`,
+`/health` and `/live` to the API on 3016, so a backend restart cannot tear down frontend
+HMR. The browser sees one origin either way.

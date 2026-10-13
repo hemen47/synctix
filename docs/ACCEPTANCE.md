@@ -4,59 +4,56 @@ How each milestone's exit criteria are verified. A milestone is done only when i
 here passes — either as an automated test that CI runs, or as a manual script someone can
 follow and get the stated result.
 
-Automated checks are the default. A manual script is only acceptable where the check
-needs Docker, a native binary, or a paid API key that CI does not have.
+Automated checks are the default. A manual script is only acceptable where the check needs
+a browser, a native binary, or a paid API key that CI does not have. Nothing here needs
+Docker any more — there is none (ADR-0029).
 
 ---
 
-## M0' — Migration
+## M0′ — Migration
 
-**Exit criteria:** `docs/MIGRATION_V2.md` written; obsolete apps and services removed;
-compose has exactly four required services plus three optional profiles;
-`docker compose up` serves the web app on :3015 with api and mongo healthy; all existing
-tests still green.
+**Exit criteria:** `docs/MIGRATION_V2.md` written; obsolete apps and services removed; the
+stack runs as one process on one port; all existing tests still green.
+
+> Revised by ADR-0029. The original criteria were written against Docker Compose — four
+> required services and three profiles — and are recorded in `MIGRATION_V2.md` as history.
+> The compose stack never ran, and the audit that followed found nothing in it worth
+> keeping. What replaces those criteria is below.
 
 ### Automated
 
 ```bash
-pnpm -r typecheck && pnpm -r test:run
-docker compose config --services            # must print exactly: proxy web api mongo
-docker compose --profile kicad --profile indexing --profile search config --quiet
+pnpm -r typecheck && pnpm -r lint && pnpm -r test:run
+pnpm build          # packages, the web bundle, then the server bundle
 ```
 
-`apps/api/src/health.test.ts` covers the health contract: per-dependency probing, the
-roll-up rules (down vs degraded vs disabled), that `/health` needs no API key, that
-`/live` never touches a dependency, that a partially-down stack still answers 200, and
-that the bare four-service stack reports `ok` rather than `degraded` — an absent profile
-is a choice, not a fault.
+CI's `build` job then starts `node apps/api/dist/server.js` and asserts that one port
+answers all three concerns — `/live`, `/health` and the SPA at `/`. That check replaces
+the old image-build and `docker compose config` jobs: what matters is that the single
+thing we ship actually boots and serves.
 
-CI's `compose` job renders both files with `docker compose config`, which catches YAML
-errors, bad anchors and undefined required variables before they reach a VPS.
+`apps/api/src/health.test.ts` covers the health contract: the roll-up rules (down vs
+degraded vs disabled vs unknown), that an optional dependency can never take the stack
+down, that a required one can, that `/health` needs no API key, and that `/live` never
+touches a dependency.
 
 ### Manual
 
 ```bash
-make env          # writes .env from .env.example
+cp .env.example .env
 # fill in SYNTRIX_API_KEY and MCP_BEARER_TOKEN — nothing else is required
-make dev          # builds and starts the four required services
-make health       # probes proxy, web and api
+pnpm install && pnpm dev
 ```
 
 **Pass when:**
 
-1. `docker compose config --services` prints exactly `proxy`, `web`, `api`, `mongo`.
-2. `http://localhost:3015` loads the SYNTRIX shell and the status pill reads `ok`.
-3. `make health` exits 0 and prints every checked service as `up`.
-4. `curl -s localhost:3015/api/health | jq .status` prints `"ok"` with both HTTP
-   dependencies reported `disabled` (no profiles running).
-5. `docker compose ps` shows `api` and `mongo` healthy.
-
-**Optional profiles.** Each is verified separately, and only when it is needed:
-
-```bash
-make dev PROFILES=kicad        # the KiCad 9 image is several GB; first build is slow
-bash scripts/health-check.sh --profiles kicad
-```
+1. `http://localhost:3015` loads the SYNTRIX shell and the status pill reads `ok`.
+2. `curl -s localhost:3015/api/health` reports `"status":"ok"` with `mongo` `up` — or
+   `disabled`, if you are running without `MONGO_URL`.
+3. `curl -s localhost:3015/live` prints `{"status":"ok"}`.
+4. Ctrl+C leaves no process holding 3015 or 3016.
+5. `pnpm build && pnpm start` serves the same app on 3015 from one process, with no Vite
+   in the tree.
 
 ---
 
@@ -166,8 +163,7 @@ The api runs with its in-memory store, which is the same path a development stac
 ## M5 — Export + Simulation
 
 **Exit criteria:** the LTspice `.asc` output parses under a written parser test; the
-KiCad export opens and passes `kicad-cli sch erc` when the `kicad` profile is up;
-`rc_lowpass` −3 dB within 5% of theory.
+KiCad export opens and parses; `rc_lowpass` −3 dB within 5% of theory.
 
 ```bash
 pnpm --filter @syntrix/export test:run
@@ -187,15 +183,14 @@ the 2.2τ identity.
 
 ### Deferred, with reasons
 
-- **`kicad-cli sch erc`** needs the `kicad` compose profile, which needs the Docker
-  daemon — unavailable on this machine (see PROGRESS.md → Blocked). The export itself is
-  verified: the schematic parses as `(kicad_sch …)` and is produced for a design with no
-  board layer, which is the normal case before M9. To run it:
+- **`kicad-cli sch erc`** is dropped rather than deferred. It needed the `kicad` service,
+  and ADR-0029 removed it: nothing called it, and every export we ship is already pure
+  TypeScript. The export itself is verified — the schematic parses as `(kicad_sch …)` and
+  is produced for a design with no board layer, which is the normal case before M9.
 
-  ```bash
-  make dev PROFILES=kicad
-  curl -F file=@design.kicad_sch localhost:3019/sch/erc
-  ```
+  What `kicad-cli` uniquely offered was KiCad's own rule checks. Those are now work to do
+  here, in TypeScript, alongside `packages/core/src/erc.ts` — see PROGRESS.md. Anyone who
+  wants the real thing today can open the exported `.kicad_sch` in KiCad and run ERC.
 
 - **Op-amp gain within 2%** moves to M6. Core deliberately knows only enough pin data to
   build an element from a bare ftype — `simple_op_amp` has no factory there, and real
@@ -262,7 +257,8 @@ _Added at M8._
 ## M9 — PCB
 
 **Exit criteria:** `pcb_board` plus placement constraints routed by tscircuit's
-autorouter into `pcb_trace`; Gerber export; DSN export as an escape hatch; `kicad-cli`
-DRC passes on a 2-layer `ams1117_regulator` when the `kicad` profile is up.
+autorouter into `pcb_trace`; Gerber export; DSN export as an escape hatch. (The original
+criterion also asked for `kicad-cli` DRC; that service is gone — ADR-0029 — and the check
+is now TypeScript work, recorded in PROGRESS.md.)
 
 _Added at M9._

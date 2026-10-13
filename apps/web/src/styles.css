@@ -484,3 +484,824 @@ code {
   fill: transparent;
   stroke: none;
 }
+
+/* ---------------------------------------------------------------- chat + views (M10) */
+
+/* The right pane holds two stacked panels now. The chat takes the space that is left
+   after the inspector, rather than the other way round: the trace grows without bound
+   and the inspector's contents are a fixed handful of rows. */
+.pane--right {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.pane--right > .chat {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.inspector {
+  flex: 0 0 auto;
+  max-height: 34%;
+  overflow-y: auto;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* The inspector's own headings sit closer together than the pane default, so a
+   selection, its ERC list and the element count all read as one column. */
+.inspector .pane__subtitle {
+  margin: 12px 0 5px;
+}
+
+.app__body {
+  grid-template-columns: 232px 1fr 360px;
+}
+
+/* ---- chat ---- */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* A flex item's default min-width is its content, so one long unbreakable token — a
+     provider's error URL, say — would otherwise widen the panel, push the grid past the
+     viewport and scroll the whole app sideways. */
+  min-width: 0;
+  padding: 12px 14px 0;
+}
+
+.chat__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.chat__header .pane__title {
+  flex: 1;
+}
+
+.chat__clear {
+  font: inherit;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.chat__clear:hover {
+  color: var(--text);
+}
+
+.chat__log {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 10px;
+  min-width: 0;
+  overflow-x: hidden;
+  /* Keeps the scrollbar from shifting content when the first message arrives. */
+  scrollbar-gutter: stable;
+}
+
+.chat__empty {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+
+.chat__examples {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chat__example {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 7px 9px;
+  color: var(--text);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.chat__example:hover {
+  border-color: var(--accent);
+}
+
+.chat__unavailable {
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--warn);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--warn) 10%, var(--bg));
+}
+
+.chat__unavailable p {
+  margin: 6px 0 0;
+  color: var(--text-dim);
+}
+
+.chat__hint {
+  font-size: 11px;
+}
+
+/* ---- turns ---- */
+
+.turn {
+  font-size: 13px;
+  line-height: 1.5;
+  border-radius: 8px;
+  min-width: 0;
+  /* Model prose and provider errors both contain URLs and identifiers with no spaces in
+     them. Breaking mid-token is ugly; a horizontally scrolling app is worse. */
+  overflow-wrap: anywhere;
+}
+
+/* The user's own words, right-aligned and tinted: a chat log is hard to scan when both
+   sides look identical, and this is the cheapest distinction that survives a long trace. */
+.turn--user {
+  align-self: flex-end;
+  max-width: 88%;
+  padding: 7px 11px;
+  background: var(--accent);
+  color: #06121f;
+  font-weight: 500;
+  white-space: pre-wrap;
+}
+
+.turn--assistant {
+  align-self: stretch;
+}
+
+.turn__text {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+}
+
+.turn__thinking {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.turn__error {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--down);
+  background: color-mix(in srgb, var(--down) 10%, var(--bg));
+}
+
+.turn__error span {
+  color: var(--text-dim);
+}
+
+.turn__error strong {
+  overflow-wrap: anywhere;
+}
+
+.turn__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.turn__erc--pass {
+  color: var(--up);
+}
+
+.turn__erc--fail {
+  color: var(--down);
+  font-weight: 600;
+}
+
+.turn__stop-reason {
+  flex-basis: 100%;
+  color: var(--warn);
+}
+
+/* ---- trace ---- */
+
+.trace__summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.trace__summary::-webkit-details-marker {
+  display: none;
+}
+
+.trace__summary::before {
+  content: "\25B8";
+  font-size: 9px;
+  transition: transform 0.12s ease;
+}
+
+.trace[open] > .trace__summary::before {
+  transform: rotate(90deg);
+}
+
+.trace__spinner {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Motion is decoration; someone who has asked for less of it should not get a spinner
+   rotating in their peripheral vision for a minute at a time. */
+@media (prefers-reduced-motion: reduce) {
+  .trace__spinner {
+    animation: none;
+    border-top-color: var(--border);
+  }
+}
+
+.trace__list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0 0 0 4px;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.trace__item {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 11px;
+  line-height: 1.45;
+  padding: 2px 0 2px 8px;
+}
+
+.trace__verb {
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.trace__args {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  background: none;
+  padding: 0;
+  overflow-wrap: anywhere;
+}
+
+.trace__result {
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* A rejected call is the most informative line in a run, so it reads at full contrast
+   while a successful one stays quiet. */
+.trace__item--fail .trace__result {
+  color: var(--text);
+}
+
+.trace__tick {
+  color: var(--up);
+}
+
+.trace__cross {
+  color: var(--down);
+}
+
+.trace__item--erc {
+  color: var(--text-dim);
+}
+
+/* ---- composer ---- */
+
+.chat__composer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0 12px;
+  border-top: 1px solid var(--border);
+}
+
+.chat__input {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  padding: 8px 10px;
+  resize: vertical;
+  color: var(--text);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.chat__input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.chat__input:disabled {
+  color: var(--text-dim);
+}
+
+.chat__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.chat__send,
+.chat__stop {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.chat__send {
+  color: #06121f;
+  background: var(--accent);
+}
+
+.chat__send:disabled {
+  color: var(--text-dim);
+  background: var(--bg-raised);
+  border-color: var(--border);
+  cursor: default;
+}
+
+.chat__stop {
+  color: var(--down);
+  background: transparent;
+  border-color: var(--down);
+}
+
+/* ---- views ---- */
+
+.pane--center {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.views {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.views__tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 10px 0;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.views__tab {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 13px;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 5px 5px 0 0;
+  cursor: pointer;
+}
+
+.views__tab:hover {
+  color: var(--text);
+}
+
+.views__tab--active {
+  color: var(--text);
+  background: var(--bg-sunken);
+  border-color: var(--border);
+  /* Covers the container's bottom border, so the active tab joins the pane below it. */
+  margin-bottom: -1px;
+  padding-bottom: 6px;
+}
+
+.views__body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.views__pane {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+
+.views__pane--render {
+  overflow: auto;
+  background: var(--bg-sunken);
+  padding: 16px;
+  justify-content: center;
+  align-items: center;
+}
+
+/* tscircuit's renderers draw on a light ground, so the image keeps one of its own rather
+   than being inverted — a board read against the wrong background is worse than one that
+   does not match the chrome. */
+.views__image {
+  /* tscircuit's SVGs carry a large intrinsic width and no useful aspect ratio hint, so a
+     bare max-width let the image overflow the pane and, at PCB sizes, stall the renderer
+     while it decoded something far bigger than the screen. Bounding both axes and letting
+     the browser letterbox it is what keeps the pane scrollable rather than broken. */
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 6px;
+}
+
+.views__failed,
+.views__placeholder {
+  margin: auto;
+  max-width: 380px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.views__route {
+  font: inherit;
+  font-size: 12px;
+  margin-top: 12px;
+  padding: 6px 16px;
+  color: #06121f;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.views__route:disabled {
+  color: var(--text-dim);
+  background: var(--bg-raised);
+  cursor: default;
+}
+
+/* ---- toolbar additions ---- */
+
+.toolbar {
+  align-items: center;
+}
+
+.toolbar__divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 2px;
+}
+
+.toolbar button:disabled {
+  color: var(--disabled);
+  cursor: default;
+  border-color: var(--border);
+}
+
+.toolbar__export {
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 8px;
+  color: var(--text);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  max-width: 130px;
+}
+
+/* A symbol under the cursor should look like something that can be picked up. */
+.symbol__hit {
+  cursor: grab;
+}
+
+/* ---------------------------------------------------------------- custom parts (M11) */
+
+.palette__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.palette__header .pane__title {
+  flex: 1;
+}
+
+.palette__new {
+  font: inherit;
+  font-size: 11px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.palette__new:hover {
+  text-decoration: underline;
+}
+
+/* The row wraps the part button and its delete affordance. The delete only appears on
+   hover or keyboard focus: it sits next to the button people click constantly, and a
+   permanently visible × next to every custom part is an invitation to a mis-click. */
+.palette__row {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.palette__row .palette__item {
+  flex: 1;
+  min-width: 0;
+}
+
+.palette__delete {
+  flex: 0 0 auto;
+  width: 22px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.palette__row:hover .palette__delete,
+.palette__delete:focus-visible {
+  opacity: 1;
+}
+
+.palette__delete:hover {
+  color: var(--down);
+  border-color: var(--down);
+}
+
+/* Marks a part as the user's own, next to the name rather than in the metadata line —
+   it is the first thing that distinguishes it from the forty generic parts around it. */
+.palette__mine {
+  color: var(--accent);
+  font-style: normal;
+  font-size: 10px;
+  font-family: system-ui, sans-serif;
+  font-weight: 600;
+}
+
+/* ---- the form ---- */
+
+.part-form {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font-size: 12px;
+}
+
+.part-form__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.part-form__header .pane__subtitle {
+  flex: 1;
+  margin: 0;
+}
+
+.part-form__cancel {
+  font: inherit;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.part-form__cancel:hover {
+  color: var(--text);
+}
+
+.part-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.part-form__field > span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.part-form input,
+.part-form select {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 7px;
+  min-width: 0;
+  color: var(--text);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+
+.part-form input:focus,
+.part-form select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Two columns, but they collapse rather than overflow: the palette is a narrow pane and
+   these fields must stay usable when it is narrower still. */
+.part-form__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 8px;
+}
+
+.part-form__note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.part-form__pins {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.part-form__pins-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.part-form__add {
+  font: inherit;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.part-form__pin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Number, name, role, remove. The name gets the space because it is the field with real
+   content in it; the number is almost always one or two characters. */
+.part-form__pin {
+  display: grid;
+  grid-template-columns: 34px 1fr 78px 18px;
+  gap: 4px;
+  align-items: center;
+}
+
+.part-form__pin input,
+.part-form__pin select {
+  padding: 4px 5px;
+  font-size: 11px;
+}
+
+.part-form__pin-kind {
+  text-overflow: ellipsis;
+}
+
+.part-form__remove {
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.part-form__remove:hover {
+  color: var(--down);
+}
+
+/* The server's own validation errors, shown verbatim. This is the whole reason the form
+   refuses rather than warns, so it gets the loudest treatment on the panel. */
+.part-form__errors {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.45;
+  border: 1px solid var(--down);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--down) 10%, var(--bg));
+  overflow-wrap: anywhere;
+}
+
+.part-form__errors div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.part-form__errors span {
+  color: var(--text-dim);
+}
+
+.part-form__save {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  color: #06121f;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.part-form__save:disabled {
+  color: var(--text-dim);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  cursor: default;
+}

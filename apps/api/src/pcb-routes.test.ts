@@ -19,7 +19,6 @@ const app = () =>
   createApp({
     version: "0.1.0",
     startedAt: Date.now(),
-    env: {},
     store: new MemoryDesignStore({ resolvePart: t0Resolver }),
   })
 

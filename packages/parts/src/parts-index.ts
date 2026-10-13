@@ -1,7 +1,7 @@
 /**
  * `PartsIndex` — where curated (T1) parts are searched.
  *
- * Three implementations, one interface:
+ * Two implementations, one interface:
  *
  * - `LocalPartsIndex` holds parts in memory and ranks them with the same scorer the T0
  *   catalog uses. No database, no network. This is what runs in tests and in a
@@ -9,8 +9,10 @@
  *   with nothing running.
  * - `MongoPartsIndex` is the default in a deployed stack: a text index over the fields
  *   an engineer types, plus structured `electrical` fields for range filtering.
- * - `MeiliPartsIndex` is the `search` compose profile — better typo tolerance and
- *   faceting at the cost of another service to run.
+ *
+ * There is no third, service-backed index. Meilisearch was one, and it went when the
+ * containers did (ADR-0029): a dedicated search server is not worth a second process for
+ * a catalog this size, and Mongo's text index covers the same queries.
  *
  * The ranking rules live in `search.ts` and are shared, so moving between them changes
  * how fast a query is and how large a catalog can be, not which part comes first. An

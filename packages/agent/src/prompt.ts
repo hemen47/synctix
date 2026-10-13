@@ -11,6 +11,7 @@
 import { readFileSync } from "node:fs"
 import { existsSync } from "node:fs"
 import { join } from "node:path"
+import { tscircuitSkillDir } from "./paths"
 
 /**
  * House rules.
@@ -57,7 +58,7 @@ export const HOUSE_RULES = `## How to design here
  * syntax and footprint parts — the reason to include it at all — are kept.
  */
 export const loadTscircuitSkill = (root?: string): string => {
-  const dir = root ?? join(process.cwd(), "packages", "agent", "prompts", "tscircuit-skill")
+  const dir = root ?? tscircuitSkillDir()
 
   const wanted = ["SYNTAX.md", "FOOTPRINTS.md", "BUS_LANES.md"]
   const parts: string[] = []

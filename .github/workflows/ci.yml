@@ -10,8 +10,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Turbo needs no remote cache here, but the env var silences its telemetry prompt.
-  TURBO_TELEMETRY_DISABLED: 1
   DO_NOT_TRACK: 1
 
 jobs:
@@ -50,44 +48,41 @@ jobs:
         # build rather than merely reporting a number.
         run: pnpm --filter @syntrix/core test:run -- --coverage
 
-  images:
-    name: Build app images
+  build:
+    name: Build and serve
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: docker/setup-buildx-action@v3
-
-      # The optional `kicad` profile image is several GB and would dominate CI time, so
-      # it is exercised by the manual acceptance script instead. The two required app
-      # images are built here.
-      - name: Build api image
-        uses: docker/build-push-action@v6
+      - uses: pnpm/action-setup@v4
         with:
-          context: .
-          file: ./apps/api/Dockerfile
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          version: 11.9.0
 
-      - name: Build web image
-        uses: docker/build-push-action@v6
+      - uses: actions/setup-node@v4
         with:
-          context: .
-          file: ./apps/web/Dockerfile
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          node-version: 22
+          cache: pnpm
 
-  compose:
-    name: Validate compose files
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Render compose config
-        # Catches YAML errors, bad anchors and undefined required variables before they
-        # reach a VPS.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      # There are no images and no compose file to validate any more (ADR-0029). What
+      # replaces them is the check that the one thing we ship actually starts: a single
+      # Node process serving the built app, the API and MCP on one port.
+      - name: Start the production server and check it serves the app
+        env:
+          NODE_ENV: production
+          PORT: 3015
         run: |
-          cp .env.example .env
-          docker compose config --quiet
-          docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
+          node apps/api/dist/index.js &
+          server=$!
+          for i in $(seq 1 30); do
+            curl -fsS "http://localhost:3015/live" >/dev/null 2>&1 && break
+            sleep 1
+          done
+          curl -fsS "http://localhost:3015/health" | tee /dev/stderr | grep -q '"status"'
+          curl -fsS "http://localhost:3015/" | grep -qi "<div id=\"root\"" 
+          kill $server

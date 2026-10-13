@@ -13,7 +13,7 @@ import { t0Resolver } from "@syntrix/parts"
 import { createApp } from "./app"
 import { MemoryDesignStore, replay } from "./store"
 
-const app = () => createApp({ version: "0.1.0", startedAt: Date.now(), env: {} })
+const app = () => createApp({ version: "0.1.0", startedAt: Date.now() })
 
 const newDesign = async (client: ReturnType<typeof app>): Promise<string> => {
   const created = await request(client).post("/api/designs").send({ name: "test" }).expect(201)
@@ -289,7 +289,10 @@ describe("parts routes", () => {
       .query({ q: "3.3V LDO SOT-223" })
       .expect(200)
 
-    expect(response.body.index).toBe("local")
+    // "composite" is the user's own library layered over the built-in catalog. What
+    // matters here is that the search answers with no database and no network at all —
+    // which index id it reports is an implementation detail.
+    expect(response.body.index).toBe("composite")
     expect(
       response.body.results.some((r: { mpn?: string }) => (r.mpn ?? "").startsWith("AMS1117")),
     ).toBe(true)

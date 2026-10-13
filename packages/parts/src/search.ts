@@ -1,10 +1,10 @@
 /**
  * Local parts search.
  *
- * Meilisearch owns T1 at scale, but T0 must be searchable with no services running — the
- * engine has to work offline, and the M2 acceptance test has to be runnable in CI without
- * a container. So scoring lives here and Meilisearch becomes an index over the same
- * ranking rules rather than a separate notion of relevance.
+ * Mongo's text index owns T1 at scale, but T0 must be searchable with nothing running —
+ * the engine has to work offline, and the M2 acceptance test has to be runnable in CI
+ * against no database at all. So scoring lives here and every index applies these same
+ * rules rather than inventing its own notion of relevance.
  *
  * The query language is what an engineer actually types: "3.3V LDO SOT-223",
  * "10k 0603 resistor", "dual op-amp". That means parsing voltages, packages and

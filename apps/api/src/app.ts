@@ -3,13 +3,16 @@
  * with supertest without binding a port.
  */
 
+import { existsSync } from "node:fs"
+import { join } from "node:path"
 import express, { type Express, type NextFunction, type Request, type Response } from "express"
 import cors from "cors"
 import { toProblemDetails, validationError } from "@syntrix/shared"
-import { t0Resolver } from "@syntrix/parts"
-import { createHealthHandler, livenessHandler } from "./health"
+import { createPartsStack, type PartsStack } from "./parts-stack"
+import { createHealthHandler, livenessHandler, type DependencyHealth } from "./health"
 import { createDesignsRouter } from "./designs"
 import { createPartsRouter } from "./parts"
+import { createAgentRouter } from "./agent-routes"
 import { createMcpRouter } from "./mcp-routes"
 import { MemoryDesignStore, type DesignStore } from "./store"
 
@@ -25,13 +28,38 @@ export interface AppOptions {
    */
   mcpBearerToken?: string
   publicOrigin?: string
-  /** Overridable so tests can drive the dependency probes deterministically. */
-  env?: NodeJS.ProcessEnv
+  /**
+   * Reports the health of whatever this process depends on — in practice MongoDB, from
+   * the bootstrap that owns the connection. Overridable so tests can drive it.
+   */
+  healthProbes?: () => Promise<DependencyHealth[]>
   /**
    * Where designs live. Defaults to the in-memory store, which is what a development
    * stack with no MONGO_URL runs on — not a test double.
    */
   store?: DesignStore
+  /**
+   * Directory of the built web app. When set, this process serves the SPA on the same
+   * port as the API — which is what production runs (ADR-0029). Unset in development,
+   * where Vite serves the app and proxies here.
+   */
+  webDist?: string
+  /**
+   * Where `config/models.yaml` lives. Defaults to the one in the repo, found by walking
+   * up for the workspace marker rather than by trusting the working directory — the api
+   * is started from `apps/api` in development and from `dist` in production.
+   */
+  modelsConfigPath?: string
+  /**
+   * Where the user's own parts are stored. Defaults to `data/parts/user-parts.json`.
+   * A test points this at a scratch directory so a run never touches a real library.
+   */
+  userPartsPath?: string
+  /**
+   * The process-wide parts stack. Passed in by the server bootstrap, which needs the
+   * resolver before it can build a store; created here when a test does not supply one.
+   */
+  partsStack?: PartsStack
 }
 
 export const createApp = (opts: AppOptions): Express => {
@@ -53,7 +81,7 @@ export const createApp = (opts: AppOptions): Express => {
     service: "api",
     version: opts.version,
     startedAt: opts.startedAt,
-    env: opts.env,
+    ...(opts.healthProbes ? { extraProbes: opts.healthProbes } : {}),
   })
   app.get("/health", health)
   app.get("/api/health", health)
@@ -61,25 +89,82 @@ export const createApp = (opts: AppOptions): Express => {
 
   if (opts.apiKey) app.use("/api", requireApiKey(opts.apiKey))
 
-  // Every feature router is mounted under /api, behind the api-key check above.
-  const store = opts.store ?? new MemoryDesignStore({ resolvePart: t0Resolver })
-  app.use("/api", createDesignsRouter(store))
-  app.use("/api", createPartsRouter())
+  /**
+   * One parts stack for the whole process — the palette, the agent, MCP and the engine's
+   * own `partRef` resolution all come from here, so a part the user defines is usable
+   * everywhere the moment it is saved.
+   */
+  const { parts, resolvePart } = opts.partsStack ?? createPartsStack(opts.userPartsPath)
 
-  // MCP is mounted outside /api: it has its own transport, its own auth and its own path,
-  // which is also what Caddy routes on (v2 principle 10 — one process, not one prefix).
+  // Every feature router is mounted under /api, behind the api-key check above.
+  const store = opts.store ?? new MemoryDesignStore({ resolvePart })
+  app.use("/api", createDesignsRouter(store))
+  app.use("/api", createPartsRouter(parts))
+  app.use(
+    "/api",
+    createAgentRouter({
+      store,
+      parts,
+      ...(opts.modelsConfigPath ? { modelsConfigPath: opts.modelsConfigPath } : {}),
+    }),
+  )
+
+  // MCP is mounted outside /api: it has its own transport, its own auth and its own path
+  // (v2 principle 10 — one process, not one prefix).
   app.use(
     createMcpRouter({
       store,
+      parts,
       ...(opts.mcpBearerToken ? { bearerToken: opts.mcpBearerToken } : {}),
       version: opts.version,
     }),
   )
 
+  if (opts.webDist) mountWebApp(app, opts.webDist)
+
   app.use(notFoundHandler)
   app.use(errorHandler)
 
   return app
+}
+
+/**
+ * Serve the built SPA from the API process, so a deployment is one process on one port
+ * with no reverse proxy in front of it (ADR-0029).
+ *
+ * Mounted last, after every router: the API owns its prefixes, and everything else is
+ * the app. Without that ordering the SPA fallback would swallow a mistyped /api path and
+ * answer it with index.html, turning a 404 into a parse error in the client.
+ */
+const mountWebApp = (app: Express, dist: string): void => {
+  if (!existsSync(dist)) {
+    console.warn(`[api] web dist not found at ${dist} — serving the API only. Run pnpm build.`)
+    return
+  }
+
+  const index = join(dist, "index.html")
+
+  // Vite fingerprints everything under /assets, so those are immutable. index.html must
+  // never be cached, or a deploy strands clients on a bundle whose chunks are gone.
+  app.use(
+    express.static(dist, {
+      index: false,
+      setHeaders: (res, path) => {
+        res.setHeader(
+          "Cache-Control",
+          path.endsWith(".html") ? "no-cache" : "public, max-age=31536000, immutable",
+        )
+      },
+    }),
+  )
+
+  app.use((req: Request, res: Response, next: NextFunction): void => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next()
+    if (/^\/(api|mcp)(\/|$)/.test(req.path) || req.path === "/health" || req.path === "/live") {
+      return next()
+    }
+    res.sendFile(index)
+  })
 }
 
 /** Single-tenant v1. The header name stays the same when real users arrive. */

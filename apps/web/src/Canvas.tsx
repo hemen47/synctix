@@ -142,6 +142,16 @@ export const Canvas = () => {
           }
           data-testid="symbol"
           data-name={symbol.name}
+          // The symbol follows the cursor while it is being dragged. A transform on the
+          // group rather than recomputed geometry: the scene is the server's answer and
+          // must not be rewritten locally, and the drag ends by submitting an operation
+          // that makes the real scene match.
+          transform={dragTransform(
+            editor,
+            viewport,
+            symbol.sourceComponentId,
+            symbol.bounds.center,
+          )}
         >
           {/* An invisible hit area over the whole symbol. Without it a click has to land
               exactly on a stroke, because artwork is a set of thin polylines with gaps
@@ -217,6 +227,26 @@ export const Canvas = () => {
 const screen = (viewport: Parameters<typeof toScreen>[0], point: Point): string => {
   const at = toScreen(viewport, point)
   return `${at.x},${at.y}`
+}
+
+/**
+ * The screen-space offset for a symbol being dragged, or `undefined` for every other one.
+ *
+ * Scaled by the viewport because the shift is expressed in world millimetres and applied
+ * to a group already drawn in pixels.
+ */
+const dragTransform = (
+  editor: { mode: { kind: string; symbolId?: string; preview?: Point } },
+  viewport: { scale: number },
+  symbolId: string,
+  center: Point,
+): string | undefined => {
+  const { mode } = editor
+  if (mode.kind !== "dragging" || mode.symbolId !== symbolId || !mode.preview) return undefined
+
+  const dx = (mode.preview.x - center.x) * viewport.scale
+  const dy = (mode.preview.y - center.y) * viewport.scale
+  return `translate(${dx} ${dy})`
 }
 
 const Primitive = ({

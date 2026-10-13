@@ -5,14 +5,10 @@ packages:
 # vite/vitest to run at all.
 allowBuilds:
   esbuild: true
-  # An optional native accelerator for msgpackr (a bullmq dependency). The pure-JS
-  # path is used when it is absent, so we skip the native build.
-  msgpackr-extract: false
   # sharp ships prebuilt native binaries; its install script fetches them.
   sharp: true
 minimumReleaseAgeExclude:
   - circuit-json@0.0.491
-  - bullmq@6.3.6
   - "@tscircuit/core@0.0.1906"
   - "@tscircuit/eval@0.0.1402"
   - "@ai-sdk/gateway@4.0.81"
@@ -24,6 +20,11 @@ minimumReleaseAgeExclude:
 # package inside .pnpm/ — including @tscircuit/eval, whose reconciler is built for
 # react 19. The symptom is "A React Element from an older version of React was rendered"
 # on any eval. One react, chosen to match tscircuit (ADR-0014).
+# zod-to-json-schema 3.25 imports `zod/v3`, a subpath that only exists in zod 4, so a
+# hoisted copy of it crashes anything that resolves through the root node_modules —
+# including the bundled server. zod is pinned to v3 here (ADR-0002), so its json-schema
+# bridge is pinned to the matching line.
 overrides:
   react: 19.3.0
   react-dom: 19.3.0
+  zod-to-json-schema: 3.24.6

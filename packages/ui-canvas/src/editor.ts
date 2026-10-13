@@ -80,16 +80,28 @@ const handlePointerDown = (
 ): EditorResult => {
   switch (state.mode.kind) {
     case "placing": {
-      // Placing is one click: add the component, then place it where the click landed.
-      // Two operations rather than one, because `add_component` does not take a position
-      // — geometry is computed, and a click is a manual edit (principle 4, ADR-0013).
+      // Placing is one click, and must be one *operation*.
+      //
+      // It is still two steps underneath — `add_component` does not take a position,
+      // because geometry is computed and a click is a manual edit (principle 4,
+      // ADR-0013). But submitting them separately was wrong twice over: the component
+      // was drawn at the layout engine's guess and then jumped to where the user
+      // clicked, and undoing a placement took two presses, the first of which left an
+      // unplaced component behind. A batch is atomic and is one undo step, which is what
+      // "I placed a part" should cost.
       const at = snapToGrid(event.at)
       const name = nextRefdes(scene, state.mode.ftype)
       return {
         state: { ...state, mode: { kind: "idle" } },
         operations: [
-          { type: "add_component", partRef: state.mode.partRef, name, props: {} },
-          { type: "move_component", component: name, center: at, layer: "schematic" },
+          {
+            type: "batch",
+            atomic: true,
+            ops: [
+              { type: "add_component", partRef: state.mode.partRef, name, props: {} },
+              { type: "move_component", component: name, center: at, layer: "schematic" },
+            ],
+          },
         ],
       }
     }
@@ -172,6 +184,24 @@ const handlePointerMove = (
         },
         operations: [],
       }
+    }
+
+    case "dragging": {
+      // The same arithmetic `pointer_up` does, so the preview cannot disagree with the
+      // `move_component` that follows it.
+      const preview = snapToGrid({
+        x: event.at.x - state.mode.grabOffset.x,
+        y: event.at.y - state.mode.grabOffset.y,
+      })
+
+      // Snapping means most moves land on the cell the symbol is already in. Returning
+      // the state unchanged for those keeps React from re-rendering the scene on every
+      // pixel of pointer travel — the drag is 1.27mm-quantised, so nothing is lost.
+      if (state.mode.preview && samePoint(state.mode.preview, preview)) {
+        return { state, operations: [] }
+      }
+
+      return { state: { ...state, mode: { ...state.mode, preview } }, operations: [] }
     }
 
     case "selecting":

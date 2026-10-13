@@ -19,18 +19,21 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.53",
+    "@ai-sdk/openai": "^4.0.66",
+    "@openrouter/ai-sdk-provider": "^3.0.0",
     "@syntrix/core": "workspace:*",
     "@syntrix/export": "workspace:*",
     "@syntrix/parts": "workspace:*",
     "@syntrix/shared": "workspace:*",
     "@syntrix/sim": "workspace:*",
     "ai": "^7.0.100",
-    "zod": "3.24.1",
+    "zod": "3.25.76",
     "zod-to-json-schema": "3.24.6"
   },
   "devDependencies": {
+    "@types/node": "^22.10.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8",
-    "@types/node": "^22.10.2"
+    "vitest": "^2.1.8"
   }
 }

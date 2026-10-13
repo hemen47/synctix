@@ -82,7 +82,7 @@ export const partDefinitionSchema = z.object({
   pins: z.array(pinSchema),
   symbol: symbolSchema,
   footprint: footprintSchema,
-  /** Structured parameters with units — searchable as Meilisearch facets. */
+  /** Structured parameters with units — what range filtering searches over. */
   electrical: z.record(z.unknown()).default({}),
   spice: spiceSchema.optional(),
   datasheetUrl: z.string().optional(),

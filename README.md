@@ -25,34 +25,41 @@ tools, a curated parts library, ELK schematic layout, and an LTspice exporter.
 
 ## Quick start
 
-No Docker needed. You need Node 20+, pnpm, and a MongoDB (or none — see below).
+You need Node 20+, pnpm, and a MongoDB (or none — see below). There is no Docker.
 
 ```bash
 pnpm install
-make env        # writes .env — check MONGO_URL, fill in SYNTRIX_API_KEY
-pnpm dev        # web on http://localhost:3016, api on :3017
+cp .env.example .env   # check MONGO_URL, fill in SYNTRIX_API_KEY
+pnpm dev               # the whole app on http://localhost:3015
 ```
+
+One command, one port. In development Vite serves the app on 3015 and proxies `/api` and
+`/mcp` to the API behind it; in production a single Node process serves all three on the
+same port. The app's fetch paths are identical either way.
 
 Unset `MONGO_URL` to run with an in-memory store and no database at all.
 
-Full detail, including the Atlas DNS caveat and what to do about a
-`3221226505` crash on Windows, is in **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**.
-
-With Docker, for something closer to production:
+To run what you would deploy:
 
 ```bash
-make dev                   # proxy, web, api — http://localhost:3015
-make dev PROFILES=mongo    # add a containerised database
+pnpm build     # packages, the web bundle, then the server bundle
+pnpm start     # one process: app + api + mcp on http://localhost:3015
 ```
+
+Full detail, including the Atlas DNS caveat, is in
+**[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**.
 
 ## Layout
 
 ```
 packages/  shared core parts layout export sim agent ui-canvas
-apps/      web api          (api also serves MCP and runs the job queue in-process)
-services/  kicad            (optional profile: a FastAPI wrapper around kicad-cli)
+apps/      web api          (api also serves MCP, the job queue and — built — the web app)
+scripts/   dev.mjs build-server.mjs demo-engine.ts fetch-tscircuit-skill.mjs
 docs/      architecture, decisions, progress, acceptance, migration
 ```
+
+No `services/`. Export is pure TypeScript throughout, so there is no `kicad-cli` wrapper,
+no Python and no Java (ADR-0029).
 
 ## Documentation
 

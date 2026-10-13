@@ -287,6 +287,57 @@ export const pcbSvgExporter: Exporter = {
     }),
 }
 
+/**
+ * The board as it looks to someone assembling it.
+ *
+ * Not a prettier `pcb-svg`: the assembly drawing shows silkscreen outlines, designators
+ * and part orientation, and hides the copper. It is the view you print and put next to a
+ * reel of parts, and it is the one that catches a part rotated 180°.
+ */
+export const assemblySvgExporter: Exporter = {
+  id: "assembly-svg",
+  label: "Assembly drawing (SVG)",
+  ext: "svg",
+  mime: "image/svg+xml",
+  since: "M10",
+  export: (design) =>
+    guard("assembly-svg", async () => {
+      const { convertCircuitJsonToAssemblySvg } = await import("circuit-to-svg")
+      return [
+        text(
+          `${baseName(design)}-assembly.svg`,
+          "image/svg+xml",
+          convertCircuitJsonToAssemblySvg(circuit(design) as never),
+        ),
+      ]
+    }),
+}
+
+/**
+ * A pin-labelled diagram of the board.
+ *
+ * The view a person needs when wiring a module to something else by hand — every pad with
+ * the net it belongs to, which neither the schematic nor the PCB view puts in one place.
+ */
+export const pinoutSvgExporter: Exporter = {
+  id: "pinout-svg",
+  label: "Pinout diagram (SVG)",
+  ext: "svg",
+  mime: "image/svg+xml",
+  since: "M10",
+  export: (design) =>
+    guard("pinout-svg", async () => {
+      const { convertCircuitJsonToPinoutSvg } = await import("circuit-to-svg")
+      return [
+        text(
+          `${baseName(design)}-pinout.svg`,
+          "image/svg+xml",
+          convertCircuitJsonToPinoutSvg(circuit(design) as never),
+        ),
+      ]
+    }),
+}
+
 // ---------------------------------------------------------------------------- Gerber
 
 export const gerberExporter: Exporter = {
@@ -365,6 +416,8 @@ export const tscircuitExporters: Exporter[] = [
   kicadExporter,
   svgExporter,
   pcbSvgExporter,
+  assemblySvgExporter,
+  pinoutSvgExporter,
   gerberExporter,
   dsnExporter,
 ]

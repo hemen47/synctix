@@ -1,5 +1,13 @@
 # MIGRATION_V2 — audit of the v1 repository against the v2 architecture
 
+> **Historical.** This document records the v1 → v2 audit as it was decided. Its
+> infrastructure conclusions — four compose services, the `kicad`, `indexing` and `search`
+> profiles, the FastAPI `kicad-cli` wrapper — were superseded by **ADR-0029**, which
+> removed containers entirely after none of that stack turned out to be reachable from the
+> code. The package-level KEEP/ADAPT/REMOVE decisions below still hold. Read it for why
+> things moved, not for how the project runs today; `README.md` and `docs/DEVELOPMENT.md`
+> are current.
+
 **Written:** 2026-09-14 · **Rulebook:** v2 prompt §12 · **Status:** CHECKPOINT A
 
 v1 delivered M0 (scaffold), M1 (core engine), M2 (parts T0) and — uncommitted on

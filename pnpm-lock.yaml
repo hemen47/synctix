@@ -7,6 +7,7 @@ settings:
 overrides:
   react: 19.3.0
   react-dom: 19.3.0
+  zod-to-json-schema: 3.24.6
 
 importers:
 
@@ -90,9 +91,6 @@ importers:
       tsx:
         specifier: ^4.23.13
         version: 4.23.13
-      turbo:
-        specifier: ^2.10.12
-        version: 2.10.12
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -148,8 +146,8 @@ importers:
         specifier: ^10.3.0
         version: 10.5.0
       zod:
-        specifier: 3.24.1
-        version: 3.24.1
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/cors':
         specifier: ^2.8.17
@@ -239,6 +237,15 @@ importers:
 
   packages/agent:
     dependencies:
+      '@ai-sdk/anthropic':
+        specifier: ^4.0.53
+        version: 4.0.53(zod@3.25.76)
+      '@ai-sdk/openai':
+        specifier: ^4.0.66
+        version: 4.0.66(zod@3.25.76)
+      '@openrouter/ai-sdk-provider':
+        specifier: ^3.0.0
+        version: 3.0.0(ai@7.0.100(zod@3.25.76))(zod@3.25.76)
       '@syntrix/core':
         specifier: workspace:*
         version: link:../core
@@ -256,13 +263,13 @@ importers:
         version: link:../sim
       ai:
         specifier: ^7.0.100
-        version: 7.0.100(zod@3.24.1)
+        version: 7.0.100(zod@3.25.76)
       zod:
-        specifier: 3.24.1
-        version: 3.24.1
+        specifier: 3.25.76
+        version: 3.25.76
       zod-to-json-schema:
         specifier: 3.24.6
-        version: 3.24.6(zod@3.24.1)
+        version: 3.24.6(zod@3.25.76)
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
@@ -281,16 +288,16 @@ importers:
         version: link:../shared
       '@tscircuit/eval':
         specifier: 0.0.1402
-        version: 0.0.1402(@tscircuit/core@0.0.1906(4e48fbaacf04d085c3430e9e0f66e494))(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3)(zod@3.24.1)
+        version: 0.0.1402(@tscircuit/core@0.0.1906(6199cebc6ab13807872b9ec423f51c75))(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)
       '@tscircuit/props':
         specifier: 0.0.653
-        version: 0.0.653(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(react@19.3.0)(zod@3.24.1)
+        version: 0.0.653(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(react@19.3.0)(zod@3.25.76)
       circuit-json:
         specifier: 0.0.491
         version: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
       zod:
-        specifier: 3.24.1
-        version: 3.24.1
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
@@ -327,10 +334,10 @@ importers:
         version: 0.0.212(typescript@5.9.3)
       circuit-json-to-pnp-csv:
         specifier: 0.0.13
-        version: 0.0.13(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.24.1))(typescript@5.9.3)
+        version: 0.0.13(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(typescript@5.9.3)
       circuit-json-to-spice:
         specifier: 0.0.46
-        version: 0.0.46(@tscircuit/circuit-json-util@0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.24.1))(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
+        version: 0.0.46(@tscircuit/circuit-json-util@0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
       circuit-to-svg:
         specifier: 0.0.416
         version: 0.0.416(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(typescript@5.9.3)
@@ -338,8 +345,8 @@ importers:
         specifier: 0.0.92
         version: 0.0.92(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(typescript@5.9.3)
       zod:
-        specifier: 3.24.1
-        version: 3.24.1
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@syntrix/layout':
         specifier: workspace:*
@@ -375,8 +382,8 @@ importers:
         specifier: 0.12.0
         version: 0.12.0
       zod:
-        specifier: 3.24.1
-        version: 3.24.1
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
@@ -410,13 +417,13 @@ importers:
         version: 0.0.2(typescript@5.9.3)
       kicad-converter:
         specifier: 0.0.17
-        version: 0.0.17(tscircuit@0.0.2543(@tscircuit/schematic-corpus@0.0.114(typescript@5.9.3))(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(three@0.179.1)(typescript@5.9.3))(typescript@5.9.3)(zod@3.24.1)
+        version: 0.0.17(tscircuit@0.0.2543(@tscircuit/schematic-corpus@0.0.114(typescript@5.9.3))(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(three@0.179.1)(typescript@5.9.3))(typescript@5.9.3)(zod@3.25.76)
       kicad-mod-converter:
         specifier: 0.0.30
-        version: 0.0.30(@tscircuit/footprinter@0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3))(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(typescript@5.9.3)
+        version: 0.0.30(@tscircuit/footprinter@0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3))(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(zod@3.25.76))(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(react@19.3.0)(typescript@5.9.3)
       zod:
-        specifier: 3.24.1
-        version: 3.24.1
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
@@ -431,8 +438,8 @@ importers:
   packages/shared:
     dependencies:
       zod:
-        specifier: 3.24.1
-        version: 3.24.1
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
@@ -459,8 +466,8 @@ importers:
         specifier: 0.0.14
         version: 0.0.14(typescript@5.9.3)
       zod:
-        specifier: 3.24.1
-        version: 3.24.1
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
@@ -502,8 +509,20 @@ importers:
 
 packages:
 
+  '@ai-sdk/anthropic@4.0.53':
+    resolution: {integrity: sha512-JMxAuCFte6mFOvoaUcig3Dp2LObin0wU2Li8ncsveh7hHKW7cG3g1bFjooxn1paxeT8UUf5XMSjhxtXG9wFLig==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
   '@ai-sdk/gateway@4.0.81':
     resolution: {integrity: sha512-9TdKEg2l/qfaK7L4gC1FkrHNBrEXQjZSV3DvkRLCXkOSJTzojmarCn19ROWBbrlHqFVbW7OSOwQqz1n7ku9HQA==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/openai@4.0.66':
+    resolution: {integrity: sha512-W4GooZjROdOmf7dfjWlRWNVs+Vvr7ZwfDZbyAJRPo1bgQbpRoDd9ZcCwy/PX1X0s2G7B/dhN2RWOORsHtr0wGg==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -1252,6 +1271,13 @@ packages:
   '@nodable/entities@3.0.0':
     resolution: {integrity: sha512-8L9xFeTYKhm49xfIypoe2W5wV1m/3Z58kT+7kR9A8OyFxcPduI4VmxaUMQyKYrRjUoLLSXv6EKKID5Tvj9cUVw==}
 
+  '@openrouter/ai-sdk-provider@3.0.0':
+    resolution: {integrity: sha512-m9XTSWoODH2RM5OsZpaGiN7QRR8cdP5paBWq699Tu3JVmGPBKT8xF8XwV0ZBVVsjikD/JgWfak4VSsTR4wAVbg==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      ai: ^7.0.0
+      zod: ^3.25.76 || ^4.1.8
+
   '@paralleldrive/cuid2@2.3.1':
     resolution: {integrity: sha512-XO7cAxhnTZl0Yggq6jOgjiOHhbgcO4NqFqwSmQpjK3b6TEE6Uj/jfSk6wzYyemh3+I0sHirKSetjQwn5cZktFw==}
 
@@ -1887,36 +1913,6 @@ packages:
 
   '@tscircuit/soup@0.0.73':
     resolution: {integrity: sha512-Q+0gSFunYKagabLUIqtAeuIy14+/z5YRlv0C/ESbAW7miN6gTSlHDV5TD8J3v40DsxiJQF6NRSHbmcBL+C31ng==}
-
-  '@turbo/darwin-64@2.10.12':
-    resolution: {integrity: sha512-9nKgKoF6ZOUsM+or0OtNf+TTJSfGvDNP7ZFv/ZGWVwOSCkumyctQiTeHwB4UNljHTnC41AqylgbunLDHoccNrA==}
-    cpu: [x64]
-    os: [darwin]
-
-  '@turbo/darwin-arm64@2.10.12':
-    resolution: {integrity: sha512-H4Elb1jqTZVeIC9bbcNwjSzemZ6RegoTOVHeuV5Osirt2Z8UguTyisMEkvZjPVZgMeN9J4ERZBFad40tFnkb7w==}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@turbo/linux-64@2.10.12':
-    resolution: {integrity: sha512-lr7KIotukvjZwEXiFSYAeOH3BWzjFVBbSzTbv0fuGFsNukYyH0+g1hB5ecqnJkgkYU+KHEMG1edOhnjiKON1wQ==}
-    cpu: [x64]
-    os: [android, linux]
-
-  '@turbo/linux-arm64@2.10.12':
-    resolution: {integrity: sha512-f0pZDTtvzB5SuNwuXBaKbZHUCMCukgc8nMlHEuvLmj91Fzec+MEbr3cAvGNor5htEDqZnO6Lxt9N/GPI/77oGA==}
-    cpu: [arm64]
-    os: [android, linux]
-
-  '@turbo/windows-64@2.10.12':
-    resolution: {integrity: sha512-SDOueJRjS/QcykWf2KCRtTLmIl5YMKsLbXkXQGhDwcTXvKXZiS5ih5lBl/gkwZIpYFjqA/rAlfMzlAFcVHNe0g==}
-    cpu: [x64]
-    os: [win32]
-
-  '@turbo/windows-arm64@2.10.12':
-    resolution: {integrity: sha512-0i0mVUa4kKk+/B3RwEwPMf9CB+T7ul56hn5FFHNA4VUNTOoLBEd6aNf3FaKfCatDNZ6cicCEf6if9QUTVyzzcA==}
-    cpu: [arm64]
-    os: [win32]
 
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
@@ -4267,10 +4263,6 @@ packages:
   tunnel-agent@0.6.0:
     resolution: {integrity: sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==}
 
-  turbo@2.10.12:
-    resolution: {integrity: sha512-AswgMPnpOoaVZHrrSBejETzEbuIA69OVGwfkHwfrY0A23VjWXBANzgq9+OymWOHAIArB7D1+1z498WY8fGg1Jw==}
-    hasBin: true
-
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
     engines: {node: '>= 0.8.0'}
@@ -4528,21 +4520,33 @@ packages:
 
 snapshots:
 
-  '@ai-sdk/gateway@4.0.81(zod@3.24.1)':
+  '@ai-sdk/anthropic@4.0.53(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 4.0.14
-      '@ai-sdk/provider-utils': 5.0.40(zod@3.24.1)
-      '@vercel/oidc': 3.2.0
-      zod: 3.24.1
+      '@ai-sdk/provider-utils': 5.0.40(zod@3.25.76)
+      zod: 3.25.76
 
-  '@ai-sdk/provider-utils@5.0.40(zod@3.24.1)':
+  '@ai-sdk/gateway@4.0.81(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.14
+      '@ai-sdk/provider-utils': 5.0.40(zod@3.25.76)
+      '@vercel/oidc': 3.2.0
+      zod: 3.25.76
+
+  '@ai-sdk/openai@4.0.66(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.14
+      '@ai-sdk/provider-utils': 5.0.40(zod@3.25.76)
+      zod: 3.25.76
+
+  '@ai-sdk/provider-utils@5.0.40(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 4.0.14
       '@standard-schema/spec': 1.1.0
       '@workflow/serde': 4.1.0
       eventsource-parser: 3.1.1
       undici: 7.29.1
-      zod: 3.24.1
+      zod: 3.25.76
 
   '@ai-sdk/provider@4.0.14':
     dependencies:
@@ -5057,8 +5061,8 @@ snapshots:
       express-rate-limit: 7.5.1(express@5.2.1)
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
-      zod: 3.24.1
-      zod-to-json-schema: 3.24.6(zod@3.24.1)
+      zod: 3.25.76
+      zod-to-json-schema: 3.24.6(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
 
@@ -5072,6 +5076,11 @@ snapshots:
   '@noble/hashes@1.8.0': {}
 
   '@nodable/entities@3.0.0': {}
+
+  '@openrouter/ai-sdk-provider@3.0.0(ai@7.0.100(zod@3.25.76))(zod@3.25.76)':
+    dependencies:
+      ai: 7.0.100(zod@3.25.76)
+      zod: 3.25.76
 
   '@paralleldrive/cuid2@2.3.1':
     dependencies:
@@ -5290,16 +5299,16 @@ snapshots:
     dependencies:
       typescript: 5.9.3
 
-  '@tscircuit/builder@1.11.7(@tscircuit/footprinter@0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3))(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/props@0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.24.1))(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(typescript@5.9.3)(zod@3.24.1)':
+  '@tscircuit/builder@1.11.7(@tscircuit/footprinter@0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3))(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/props@0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(zod@3.25.76))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.25.76))(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(react@19.3.0)(typescript@5.9.3)(zod@3.25.76)':
     dependencies:
       '@lume/kiwi': 0.1.0
       '@tscircuit/footprinter': 0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3)
-      '@tscircuit/layout': 0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1)
-      '@tscircuit/props': 0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.24.1)
+      '@tscircuit/layout': 0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(zod@3.25.76)
+      '@tscircuit/props': 0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(zod@3.25.76))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.25.76)
       '@tscircuit/routing': 1.3.1(react@19.3.0)
       '@tscircuit/schematic-autolayout': 0.0.5
       '@tscircuit/soup': 0.0.73
-      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1)
+      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
       circuit-json-to-gerber: 0.0.5(typescript@5.9.3)
       convert-units: 2.3.4
       fast-json-stable-stringify: 2.1.0
@@ -5367,6 +5376,13 @@ snapshots:
       parsel-js: 1.2.3
       transformation-matrix: 3.1.0
       zod: 3.24.1
+
+  '@tscircuit/circuit-json-util@0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)':
+    dependencies:
+      circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
+      parsel-js: 1.2.3
+      transformation-matrix: 3.1.0
+      zod: 3.25.76
 
   '@tscircuit/cli@0.1.2071(circuit-json@0.0.488(format-si-unit@0.0.12(typescript@5.9.3)))(tscircuit@0.0.2543(@tscircuit/schematic-corpus@0.0.114(typescript@5.9.3))(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(three@0.179.1)(typescript@5.9.3))':
     dependencies:
@@ -5450,27 +5466,27 @@ snapshots:
       - graphics-debug
       - react
 
-  '@tscircuit/core@0.0.1906(4e48fbaacf04d085c3430e9e0f66e494)':
+  '@tscircuit/core@0.0.1906(6199cebc6ab13807872b9ec423f51c75)':
     dependencies:
       '@flatten-js/core': 1.6.14
       '@lume/kiwi': 0.4.4
       '@tscircuit/capacity-autorouter': 0.0.904(typescript@5.9.3)
       '@tscircuit/checks': 0.0.189(@flatten-js/core@1.6.14)(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.30(typescript@5.9.3))(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3)
-      '@tscircuit/circuit-json-util': 0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.24.1)
+      '@tscircuit/circuit-json-util': 0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
       '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3)
       '@tscircuit/footprinter': 0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3)
       '@tscircuit/infgrid-ijump-astar': 0.0.35
       '@tscircuit/matchpack': 0.0.96(typescript@5.9.3)
       '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
-      '@tscircuit/props': 0.0.653(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(react@19.3.0)(zod@3.24.1)
+      '@tscircuit/props': 0.0.653(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(react@19.3.0)(zod@3.25.76)
       '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
       bpc-graph: 0.0.67(typescript@5.9.3)
       calculate-cell-boundaries: 0.0.21(graphics-debug@0.0.100(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3))(typescript@5.9.3)
-      calculate-packing: 0.0.89(@tscircuit/circuit-json-util@0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.24.1))(typescript@5.9.3)
+      calculate-packing: 0.0.89(@tscircuit/circuit-json-util@0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(typescript@5.9.3)
       circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
       circuit-json-to-bpc: 0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3)
       circuit-json-to-connectivity-map: 0.0.30(typescript@5.9.3)
-      circuit-json-to-spice: 0.0.46(@tscircuit/circuit-json-util@0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.24.1))(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
+      circuit-json-to-spice: 0.0.46(@tscircuit/circuit-json-util@0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
       css-select: 5.1.0
       format-si-unit: 0.0.12(typescript@5.9.3)
       nanoid: 5.1.16
@@ -5561,12 +5577,12 @@ snapshots:
       typescript: 5.9.3
       zod: 3.25.76
 
-  '@tscircuit/eval@0.0.1402(@tscircuit/core@0.0.1906(4e48fbaacf04d085c3430e9e0f66e494))(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3)(zod@3.24.1)':
+  '@tscircuit/eval@0.0.1402(@tscircuit/core@0.0.1906(6199cebc6ab13807872b9ec423f51c75))(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)':
     dependencies:
-      '@tscircuit/core': 0.0.1906(4e48fbaacf04d085c3430e9e0f66e494)
+      '@tscircuit/core': 0.0.1906(6199cebc6ab13807872b9ec423f51c75)
       circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
       typescript: 5.9.3
-      zod: 3.24.1
+      zod: 3.25.76
 
   '@tscircuit/eval@0.0.1402(@tscircuit/core@0.0.1906(e63e477b5455273810820568db907f53))(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3)(zod@3.24.1)':
     dependencies:
@@ -5591,7 +5607,7 @@ snapshots:
     dependencies:
       '@tscircuit/mm': 0.0.8(typescript@5.9.3)
       circuit-json: 0.0.488(format-si-unit@0.0.12(typescript@5.9.3))
-      zod: 3.24.1
+      zod: 3.25.76
     transitivePeerDependencies:
       - typescript
 
@@ -5599,7 +5615,7 @@ snapshots:
     dependencies:
       '@tscircuit/mm': 0.0.8(typescript@5.9.3)
       circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
-      zod: 3.24.1
+      zod: 3.25.76
     transitivePeerDependencies:
       - typescript
 
@@ -5623,20 +5639,20 @@ snapshots:
     dependencies:
       tscircuit: 0.0.2543(@tscircuit/schematic-corpus@0.0.114(typescript@5.9.3))(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(three@0.179.1)(typescript@5.9.3)
 
-  '@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1)':
+  '@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(zod@3.25.76)':
     dependencies:
       '@tscircuit/manual-edit-events': 0.0.8
       '@tscircuit/schematic-autolayout': 0.0.5
       '@tscircuit/soup': 0.0.73
-      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1)
+      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
       transformation-matrix: 2.16.1
-      zod: 3.24.1
+      zod: 3.25.76
 
   '@tscircuit/manifold-2d@0.0.6': {}
 
   '@tscircuit/manual-edit-events@0.0.8':
     dependencies:
-      zod: 3.24.1
+      zod: 3.25.76
 
   '@tscircuit/matchpack@0.0.95(typescript@5.9.3)':
     dependencies:
@@ -5688,12 +5704,12 @@ snapshots:
     dependencies:
       typescript: 5.9.3
 
-  '@tscircuit/props@0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.24.1)':
+  '@tscircuit/props@0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(zod@3.25.76))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.25.76)':
     dependencies:
-      '@tscircuit/layout': 0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1)
+      '@tscircuit/layout': 0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(zod@3.25.76)
       '@tscircuit/soup': 0.0.73
       react: 19.3.0
-      zod: 3.24.1
+      zod: 3.25.76
 
   '@tscircuit/props@0.0.653(circuit-json@0.0.488(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.3.0)(zod@3.25.76)':
     dependencies:
@@ -5701,11 +5717,11 @@ snapshots:
       react: 19.3.0
       zod: 3.25.76
 
-  '@tscircuit/props@0.0.653(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(react@19.3.0)(zod@3.24.1)':
+  '@tscircuit/props@0.0.653(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(react@19.3.0)(zod@3.25.76)':
     dependencies:
       circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
       react: 19.3.0
-      zod: 3.24.1
+      zod: 3.25.76
 
   '@tscircuit/props@0.0.656(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(react@19.3.0)(zod@3.24.1)':
     dependencies:
@@ -5812,12 +5828,12 @@ snapshots:
       transformation-matrix: 2.16.1
       zod: 3.25.76
 
-  '@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1)':
+  '@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)':
     dependencies:
       circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
       parsel-js: 1.2.3
       transformation-matrix: 2.16.1
-      zod: 3.24.1
+      zod: 3.25.76
 
   '@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.24.1)':
     dependencies:
@@ -5826,29 +5842,18 @@ snapshots:
       transformation-matrix: 3.1.0
       zod: 3.24.1
 
+  '@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)':
+    dependencies:
+      circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
+      parsel-js: 1.2.3
+      transformation-matrix: 3.1.0
+      zod: 3.25.76
+
   '@tscircuit/soup@0.0.73':
     dependencies:
       convert-units: 2.3.4
       nanoid: 5.1.16
-      zod: 3.24.1
-
-  '@turbo/darwin-64@2.10.12':
-    optional: true
-
-  '@turbo/darwin-arm64@2.10.12':
-    optional: true
-
-  '@turbo/linux-64@2.10.12':
-    optional: true
-
-  '@turbo/linux-arm64@2.10.12':
-    optional: true
-
-  '@turbo/windows-64@2.10.12':
-    optional: true
-
-  '@turbo/windows-arm64@2.10.12':
-    optional: true
+      zod: 3.25.76
 
   '@types/babel__core@7.20.5':
     dependencies:
@@ -6174,12 +6179,12 @@ snapshots:
 
   acorn@8.18.0: {}
 
-  ai@7.0.100(zod@3.24.1):
+  ai@7.0.100(zod@3.25.76):
     dependencies:
-      '@ai-sdk/gateway': 4.0.81(zod@3.24.1)
+      '@ai-sdk/gateway': 4.0.81(zod@3.25.76)
       '@ai-sdk/provider': 4.0.14
-      '@ai-sdk/provider-utils': 5.0.40(zod@3.24.1)
-      zod: 3.24.1
+      '@ai-sdk/provider-utils': 5.0.40(zod@3.25.76)
+      zod: 3.25.76
 
   ajv-formats@3.0.1(ajv@8.20.0):
     optionalDependencies:
@@ -6397,6 +6402,11 @@ snapshots:
       '@tscircuit/circuit-json-util': 0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.24.1)
       typescript: 5.9.3
 
+  calculate-packing@0.0.89(@tscircuit/circuit-json-util@0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(typescript@5.9.3):
+    dependencies:
+      '@tscircuit/circuit-json-util': 0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
+      typescript: 5.9.3
+
   call-bind-apply-helpers@1.0.2:
     dependencies:
       es-errors: 1.3.0
@@ -6500,9 +6510,9 @@ snapshots:
     dependencies:
       typescript: 5.9.3
 
-  circuit-json-to-pnp-csv@0.0.13(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.24.1))(typescript@5.9.3):
+  circuit-json-to-pnp-csv@0.0.13(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(typescript@5.9.3):
     dependencies:
-      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.24.1)
+      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
       papaparse: 5.7.0
       typescript: 5.9.3
 
@@ -6527,6 +6537,14 @@ snapshots:
   circuit-json-to-spice@0.0.46(@tscircuit/circuit-json-util@0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.24.1))(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3):
     dependencies:
       '@tscircuit/circuit-json-util': 0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.24.1)
+      circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
+      circuit-json-to-connectivity-map: 0.0.22(typescript@5.9.3)
+      spicets: 0.0.5(typescript@5.9.3)
+      typescript: 5.9.3
+
+  circuit-json-to-spice@0.0.46(@tscircuit/circuit-json-util@0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3):
+    dependencies:
+      '@tscircuit/circuit-json-util': 0.0.113(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
       circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
       circuit-json-to-connectivity-map: 0.0.22(typescript@5.9.3)
       spicets: 0.0.5(typescript@5.9.3)
@@ -6737,12 +6755,12 @@ snapshots:
 
   dsn-converter@0.0.92(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(typescript@5.9.3):
     dependencies:
-      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.24.1)
+      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
       circuit-json: 0.0.491(format-si-unit@0.0.14(typescript@5.9.3))
       debug: 4.4.3
       typescript: 5.9.3
       uuid: 10.0.0
-      zod: 3.24.1
+      zod: 3.25.76
     transitivePeerDependencies:
       - supports-color
       - transformation-matrix
@@ -6762,7 +6780,7 @@ snapshots:
       commander: 12.1.0
       transformation-matrix: 2.16.1
       typescript: 5.9.3
-      zod: 3.24.1
+      zod: 3.25.76
 
   ee-first@1.1.1: {}
 
@@ -7498,19 +7516,19 @@ snapshots:
 
   kicad-component-converter@0.1.41: {}
 
-  kicad-converter@0.0.17(tscircuit@0.0.2543(@tscircuit/schematic-corpus@0.0.114(typescript@5.9.3))(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(three@0.179.1)(typescript@5.9.3))(typescript@5.9.3)(zod@3.24.1):
+  kicad-converter@0.0.17(tscircuit@0.0.2543(@tscircuit/schematic-corpus@0.0.114(typescript@5.9.3))(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(three@0.179.1)(typescript@5.9.3))(typescript@5.9.3)(zod@3.25.76):
     dependencies:
       tscircuit: 0.0.2543(@tscircuit/schematic-corpus@0.0.114(typescript@5.9.3))(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(three@0.179.1)(typescript@5.9.3)
       typescript: 5.9.3
-      zod: 3.24.1
+      zod: 3.25.76
 
-  kicad-mod-converter@0.0.30(@tscircuit/footprinter@0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3))(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(typescript@5.9.3):
+  kicad-mod-converter@0.0.30(@tscircuit/footprinter@0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3))(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(zod@3.25.76))(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(react@19.3.0)(typescript@5.9.3):
     dependencies:
-      '@tscircuit/builder': 1.11.7(@tscircuit/footprinter@0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3))(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/props@0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.24.1))(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(typescript@5.9.3)(zod@3.24.1)
-      '@tscircuit/props': 0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.24.1))(@tscircuit/soup@0.0.73)(zod@3.24.1))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.24.1)
+      '@tscircuit/builder': 1.11.7(@tscircuit/footprinter@0.0.426(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(typescript@5.9.3))(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/props@0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(zod@3.25.76))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.25.76))(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(react@19.3.0)(typescript@5.9.3)(zod@3.25.76)
+      '@tscircuit/props': 0.0.6(@tscircuit/layout@0.0.25(@tscircuit/manual-edit-events@0.0.8)(@tscircuit/schematic-autolayout@0.0.5)(@tscircuit/soup-util@0.0.41(circuit-json@0.0.491(format-si-unit@0.0.14(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup@0.0.73)(zod@3.25.76))(@tscircuit/soup@0.0.73)(react@19.3.0)(zod@3.25.76)
       prettier: 3.9.6
       s-expression: 3.1.1
-      zod: 3.24.1
+      zod: 3.25.76
     transitivePeerDependencies:
       - '@tscircuit/footprinter'
       - '@tscircuit/layout'
@@ -8614,15 +8632,6 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
-  turbo@2.10.12:
-    optionalDependencies:
-      '@turbo/darwin-64': 2.10.12
-      '@turbo/darwin-arm64': 2.10.12
-      '@turbo/linux-64': 2.10.12
-      '@turbo/linux-arm64': 2.10.12
-      '@turbo/windows-64': 2.10.12
-      '@turbo/windows-arm64': 2.10.12
-
   type-check@0.4.0:
     dependencies:
       prelude-ls: 1.2.1
@@ -8806,9 +8815,9 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod-to-json-schema@3.24.6(zod@3.24.1):
+  zod-to-json-schema@3.24.6(zod@3.25.76):
     dependencies:
-      zod: 3.24.1
+      zod: 3.25.76
 
   zod@3.24.1: {}
 

@@ -10,7 +10,11 @@ import type { Point, Scene, Viewport } from "./types"
 
 export const createViewport = (widthPx: number, heightPx: number): Viewport => ({
   offset: { x: 0, y: 0 },
-  scale: 8, // 8 px/mm shows about a 100mm sheet on a laptop
+  // 18 px/mm. A schematic symbol is only a few millimetres across, so at the 8 px/mm this
+  // used to open at a resistor was about twenty pixels wide — legible if you already knew
+  // what it was, and a speck if you did not. This is roughly the density a schematic is
+  // drawn at on paper, and Fit still frames anything larger.
+  scale: 18,
   widthPx,
   heightPx,
 })

@@ -8,36 +8,107 @@
 
 ## Current task
 
-**All milestones complete.** M0' through M9 are done; 486 unit tests and 9 Playwright
-tests pass. `docs/DEVELOPMENT.md` is the starting point for running it.
+**M11 — custom parts.** M0' through M11 are done; 505 unit tests and 12 Playwright tests
+pass. `docs/DEVELOPMENT.md` is the starting point for running it.
 
-One fix since: `GET /health` returned **503** under `pnpm dev` on the host, because a
-`.env` carrying the compose hostnames made both optional profile probes fail and
-`rollUp` counted an optional dependency as fatal. Optional deps now degrade and never
-down the stack (ADR-0027). Host dev reports `200 degraded`, naming `kicad` and
-`meilisearch`.
+You can now define a part the catalog does not have — a module, a connector, a chip nobody
+indexed — from the palette. It is stored in `data/parts/user-parts.json`, ranks above
+generic parts in search, and is usable everywhere a built-in part is, including by the
+agent (ADR-0035).
 
-Four things are deferred rather than done, none of them blocking, each recorded against
-its milestone below and in `docs/ACCEPTANCE.md`:
+**It shipped broken once, in a way worth recording.** A custom part could be saved,
+searched, fetched and its pinout served, and then `add_component` rejected it with
+`PART_NOT_FOUND`: the bootstrap builds a store _before_ `createApp` runs, so it had built
+its own `t0Resolver` while the routers got the correct one. Every test passed, because
+tests call `createApp` without a store and never exercised the production wiring. One
+`parts-stack.ts` now builds the resolver and the index together, and a regression test
+drives the bootstrap's shape (ADR-0036).
 
-1. **The live Docker stack** has never run — the daemon is not available on this machine.
-   Compose renders exactly three required services and all four profiles cleanly, and
-   both servers run fine outside containers.
-2. **`kicad-cli` ERC and DRC** need the `kicad` compose profile, so they need the daemon
-   too. The exports themselves are verified.
-3. **The PCB tab is not editable in the browser.** The operation it needs exists and the
-   routing tests drive it; the React view lands with the runframe viewer.
-4. **The live-provider agent eval** needs an API key this machine does not have. The
-   suite is written to run against a real model behind `SYNTRIX_EVAL_LIVE=1`.
+**The agent runs on `openrouter/free`** — a router that picks a free tool-calling model per
+call. Verified end to end: four tool calls, ERC clean, `costUsd: 0`. It is inconsistent by
+construction, so if runs start looping, pin a specific model in `config/models.yaml`
+before concluding the agent is broken.
+
+**M10 — the agent panel.** `AgentLoop` was finished and passing its eval at M6, but
+nothing ever called it: there was no HTTP route, no `ModelClient` over the AI SDK, and no
+UI. The editor shipped as a manual schematic tool with an agent nobody could talk to.
+
+- `packages/agent/src/provider.ts` — the real `ModelClient`. The awkward part is message
+  shape: the loop keeps a flat transcript and never records the assistant's _tool calls_,
+  because it has just executed them, while every provider requires them before a
+  `tool_result`. The bridge remembers what it emitted and re-inserts them, so `loop.ts`
+  — the part covered by the eval suite — did not have to change to suit one SDK.
+- `apps/api/src/agent-backend.ts` — tool names to engine calls, through the same
+  `store.submit` the REST API and MCP use. The agent has no private path into a design.
+- `apps/api/src/agent-routes.ts` — `POST /designs/:id/agent` over SSE, and
+  `GET /agent/status` so a missing key is a disabled composer with a reason rather than a
+  failure after someone types a paragraph (ADR-0032).
+- The chat panel renders the **trace**, in plain sentences, not raw JSON. Someone who
+  cannot read a schematic cannot check the answer; what they can check is the work
+  (ADR-0032).
+- Board, assembly and pinout views from `circuit-to-svg`, through the exporter registry
+  (ADR-0033). The toolbar exposes all nine export formats and the autorouter.
+- **Two real editor bugs fixed** (ADR-0034): a placement was two operations, so the part
+  jumped from the layout engine's guess to the click point and took two undos; and
+  `submit` published the new version before the relayout, so the status bar said "v3"
+  while the canvas still drew v2. Dragging now shows a live preview, and idle pointer
+  movement no longer runs the reducer on every pixel.
+
+Verified end to end against a live provider: the loop self-corrected from a rejected
+`ftype: "resistor"` to `simple_resistor` using the engine's own hint, exactly as designed.
+
+Before that, one simplification pass that touched the whole shape of the project.
+
+**The toolchain crash.** `pnpm run dev` died instantly with exit `3221226505`
+(`0xC0000409`, the Windows fail-fast code). It was turbo, and it was reproducible: turbo
+works with output redirected to a pipe and crashes every time with a real console
+attached, which is why no automated check ever caught it. It affected `build`, `test`,
+`lint` and `typecheck` too. Turbo is removed; `pnpm -r` does the same job (ADR-0028).
+`pnpm dev` is now `scripts/dev.mjs`, which also kills the process tree on exit — the cause
+of the orphaned `vite`/`tsx` processes that used to hold ports after Ctrl+C.
+
+**No containers, one port** (ADR-0029). The audit found the `kicad` container unreferenced
+(every export we ship is already pure TypeScript), `indexing` (redis + BullMQ) with zero
+references in the source, and `search` (Meilisearch) duplicating what `MongoPartsIndex`
+already does through the same ranking rules. Compose, Caddy, the Makefile,
+`services/kicad/` and both Dockerfiles are gone. The public port is **3015** in
+development and production alike.
+
+**The server ships as one bundle** (ADR-0030). `node apps/api/dist/index.js` had never
+been run and did not work — `tsc` emits our extensionless local imports unchanged, which
+is not resolvable ESM. `scripts/build-server.mjs` bundles everything into
+`apps/api/dist/server.js`, which runs against Node alone.
+
+**`GET /health`** returned 503 under `pnpm dev` because `rollUp` counted an optional
+dependency as fatal (ADR-0027). Optional dependencies now degrade and never down the
+stack, and with the profile services gone the one probe left is MongoDB — required, so
+the 503 means something again.
+
+Four things are deferred rather than done, none of them blocking:
+
+1. **The PCB tab is read-only.** It renders through `circuit-to-svg` (ADR-0033); editing
+   board placements in the browser still needs the canvas switched to `layer: "pcb"`.
+2. **The 3D view** genuinely needs `@tscircuit/runframe`, which is a React application and
+   a large dependency. It is the one view SVG cannot provide.
+3. **KiCad's own ERC and DRC** are not implemented. Every export is verified in pure
+   TypeScript; what `kicad-cli` uniquely offered was its rule checks, and they would now
+   have to be written here rather than shelled out to.
+4. **The live-provider agent eval** is still opt-in behind `SYNTRIX_EVAL_LIVE=1`. The
+   agent itself is now verified against a live provider by hand; the eval suite is not
+   wired into CI because it costs money per run.
 
 ## Next, when work resumes
 
-1. Bring up the Docker stack and close items 1 and 2 above with the scripts in
-   `ACCEPTANCE.md`.
-2. The PCB tab: `@tscircuit/runframe` for the read-only 3D view, and the SVG canvas
-   already built here, switched to `layer: "pcb"` placements.
-3. Watch `circuit-json` for zod 4 types — three packages are pinned below their latest
-   release because of ADR-0002, and they all unpin together.
+0. **Import a custom part rather than typing it**: an LCSC part number or a KiCad
+   `.kicad_sym` would fill the form in, and both sources already exist in `@syntrix/parts`.
+1. **Editable PCB placements**: the SVG canvas already built here, switched to
+   `layer: "pcb"`, so the board view stops being read-only.
+2. **Simulation in the UI.** The `simulate` tool works and the agent can call it, but
+   nothing plots a waveform — `uplot` is a dependency with no consumer.
+3. ERC/DRC rule checks in TypeScript, now that there is no `kicad-cli` to defer to.
+4. Watch `circuit-json` for zod 4 types — three packages are pinned below their latest
+   release because of ADR-0002, and they all unpin together (zod itself moved to 3.25.76
+   for the AI SDK, ADR-0031, which does not change that pin's intent).
 
 ## Roadmap v2
 
